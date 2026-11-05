@@ -1,0 +1,344 @@
+{
+  "Beras Kualitas Bawah I": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 8.333333333333337
+  },
+  "Beras Kualitas Bawah II": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 13.529411764705886
+  },
+  "Beras Kualitas Medium I": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 11.862745098039213
+  },
+  "Beras Kualitas Medium II": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 10.980392156862742
+  },
+  "Beras Kualitas Super I": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 16.568627450980397
+  },
+  "Beras Kualitas Super II": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 20.882352941176478
+  },
+  "Daging Ayam Ras Segar": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 265.9803921568628
+  },
+  "Daging Sapi Kualitas 1": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 572.6470588235294
+  },
+  "Daging Sapi Kualitas 2": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 450.0980392156863
+  },
+  "Telur Ayam Ras Segar": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 104.60784313725492
+  },
+  "Bawang Merah Ukuran Sedang": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 555.6862745098039
+  },
+  "Bawang Putih Ukuran Sedang": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 126.17647058823528
+  },
+  "Cabai Merah Besar": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 1175.3921568627452
+  },
+  "Cabai Merah Keriting": {
+    "model_name": "LightGBM",
+    "window": 10,
+    "params": {
+      "loss": "mae",
+      "n_estimators": 300,
+      "learning_rate": 0.011803272812742766,
+      "subsample": 0.9508301250272264,
+      "colsample_bytree": 0.9216196835328938,
+      "reg_alpha": 1.2719184299506135e-05,
+      "reg_lambda": 1.8297409874762738e-07,
+      "max_depth": 2,
+      "num_leaves": 11,
+      "min_child_samples": 14
+    },
+    "shrink": 1.0,
+    "cv_mae": 1146.3683371429174
+  },
+  "Cabai Rawit Hijau": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 901.5686274509803
+  },
+  "Cabai Rawit Merah": {
+    "model_name": "LightGBM",
+    "window": 5,
+    "params": {
+      "loss": "mae",
+      "n_estimators": 300,
+      "learning_rate": 0.039453013609196924,
+      "subsample": 0.6414549621373826,
+      "colsample_bytree": 0.9315734564142919,
+      "reg_alpha": 1.098484908527257e-06,
+      "reg_lambda": 6.74366850995308e-06,
+      "max_depth": 2,
+      "num_leaves": 11,
+      "min_child_samples": 28
+    },
+    "shrink": 1.0,
+    "cv_mae": 1818.9661951895232
+  },
+  "Minyak Goreng Kemasan Bermerk 1": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 54.901960784313715
+  },
+  "Minyak Goreng Kemasan Bermerk 2": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 32.745098039215684
+  },
+  "Gula Pasir Kualitas Premium": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 8.823529411764707
+  },
+  "Gula Pasir Lokal": {
+    "model_name": "XGBoost",
+    "window": 3,
+    "params": {
+      "loss": "mse",
+      "n_estimators": 100,
+      "learning_rate": 0.05,
+      "subsample": 0.749816047538945,
+      "colsample_bytree": 0.9802857225639665,
+      "reg_alpha": 0.038720902953704193,
+      "reg_lambda": 0.0024430162614261413,
+      "max_depth": 2,
+      "min_child_weight": 4
+    },
+    "shrink": 0.0,
+    "cv_mae": 10.980392156862743
+  }
+}

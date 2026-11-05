@@ -1,0 +1,21 @@
+{
+  "model_name": "LightGBM",
+  "window": 5,
+  "params": {
+    "loss": "mae",
+    "n_estimators": 300,
+    "learning_rate": 0.039453013609196924,
+    "subsample": 0.6414549621373826,
+    "colsample_bytree": 0.9315734564142919,
+    "reg_alpha": 1.098484908527257e-06,
+    "reg_lambda": 6.74366850995308e-06,
+    "max_depth": 2,
+    "num_leaves": 11,
+    "min_child_samples": 28
+  },
+  "shrink": 1.0,
+  "cv_mae": 1818.9661951895232,
+  "mae": 1114.4258150027226,
+  "rmse": 3966.355357525032,
+  "r2": 0.969075369218153
+}
