@@ -1,20 +1,19 @@
 {
-  "model_name": "XGBoost",
-  "window": 3,
+  "model_name": "LightGBM",
+  "window": 22,
   "params": {
-    "loss": "mse",
-    "n_estimators": 100,
-    "learning_rate": 0.05,
-    "subsample": 0.749816047538945,
-    "colsample_bytree": 0.9802857225639665,
-    "reg_alpha": 0.038720902953704193,
-    "reg_lambda": 0.0024430162614261413,
+    "n_estimators": 350,
+    "learning_rate": 0.07725378389307355,
+    "subsample": 0.8832290311184181,
+    "colsample_bytree": 0.608233797718321,
+    "reg_alpha": 5.360294728728285,
+    "reg_lambda": 0.31044435499483225,
     "max_depth": 2,
-    "min_child_weight": 4
+    "num_leaves": 9,
+    "min_child_samples": 19
   },
-  "shrink": 0.0,
-  "cv_mae": 8.333333333333337,
-  "mae": 0.0,
-  "rmse": 0.0,
+  "cv_mae": 17.161010355789564,
+  "mae": 7.1550864062428445,
+  "rmse": 7.155086406242845,
   "r2": NaN
 }

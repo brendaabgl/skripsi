@@ -1,20 +1,18 @@
 {
   "model_name": "XGBoost",
-  "window": 3,
+  "window": 22,
   "params": {
-    "loss": "mse",
-    "n_estimators": 100,
-    "learning_rate": 0.05,
-    "subsample": 0.749816047538945,
-    "colsample_bytree": 0.9802857225639665,
-    "reg_alpha": 0.038720902953704193,
-    "reg_lambda": 0.0024430162614261413,
+    "n_estimators": 125,
+    "learning_rate": 0.012497580731861392,
+    "subsample": 0.7301635711847693,
+    "colsample_bytree": 0.9599892369990475,
+    "reg_alpha": 0.25490503505434686,
+    "reg_lambda": 0.26495753199918437,
     "max_depth": 2,
-    "min_child_weight": 4
+    "min_child_weight": 13
   },
-  "shrink": 0.0,
-  "cv_mae": 126.17647058823528,
-  "mae": 130.4635761589404,
-  "rmse": 837.3721114176972,
-  "r2": 0.818059763742207
+  "cv_mae": 175.06152853588858,
+  "mae": 182.1551100162933,
+  "rmse": 832.3261238758007,
+  "r2": 0.8202458934756285
 }

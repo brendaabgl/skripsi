@@ -3,7 +3,7 @@
     "Atribut": "Beras Kualitas Bawah I",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 679,
     "Baris uji": 302,
     "Latih s.d.": "2025-09-09",
     "Uji mulai": "2025-09-10"
@@ -21,7 +21,7 @@
     "Atribut": "Beras Kualitas Medium I",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 679,
     "Baris uji": 302,
     "Latih s.d.": "2025-09-09",
     "Uji mulai": "2025-09-10"
@@ -57,7 +57,7 @@
     "Atribut": "Daging Ayam Ras Segar",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 679,
     "Baris uji": 302,
     "Latih s.d.": "2025-09-09",
     "Uji mulai": "2025-09-10"
@@ -102,7 +102,7 @@
     "Atribut": "Bawang Putih Ukuran Sedang",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 679,
     "Baris uji": 302,
     "Latih s.d.": "2025-09-09",
     "Uji mulai": "2025-09-10"
@@ -165,7 +165,7 @@
     "Atribut": "Gula Pasir Kualitas Premium",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 679,
     "Baris uji": 302,
     "Latih s.d.": "2025-09-09",
     "Uji mulai": "2025-09-10"

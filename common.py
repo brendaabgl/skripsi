@@ -107,7 +107,7 @@ def check_data_quality(path=None, max_stale_days=4):
 # ----------------------------------------------------------------------------
 # Semua fitur dibuat RELATIF (persentase), bukan level harga mentah. Alasannya: harga pangan bergeser naik dari
 # waktu ke waktu, sehingga model pohon yang belajar dari "level harga" melihat level baru di data uji dan menebak
-# sembarangan (penyebab utama kalah dari naive). Target = persentase perubahan harga hari itu.
+# sembarangan. Target = persentase perubahan harga hari itu.
 LONG_WINDOW = 22          # acuan jangka panjang (1 bulan kerja) untuk fitur "jarak ke rata-rata"
 CHANGE_EPS = 1e-4         # perubahan < 0,01% dianggap "tidak berubah" (menyerap derau float prediksi rekursif)
 MAX_RUN = 22              # batas atas fitur "berapa hari harga tidak berubah"
@@ -167,20 +167,6 @@ def build_features(df_series, window_size):
 # ----------------------------------------------------------------------------
 # MODEL & PREDIKSI (dipakai app.py dan predict.py)
 # ----------------------------------------------------------------------------
-class ShrunkModel:
-    """
-    Pembungkus tipis: prediksi perubahan dari model dikalikan faktor `shrink` (0..1).
-    shrink dipilih pada data LATIH (cross-validation), jadi model hanya "menyimpang" dari naive sebesar yang
-    terbukti membantu. shrink=0 berarti model tidak terbukti mengalahkan naive pada validasi (prediksi = harga terakhir).
-    """
-    def __init__(self, model, shrink=1.0):
-        self.model = model
-        self.shrink = float(shrink)
-
-    def predict(self, X):
-        return self.shrink * np.asarray(self.model.predict(X), dtype=float)
-
-
 def _safe(attr):
     return attr.replace(" ", "_")
 
@@ -220,7 +206,7 @@ def load_model(attr):
             else:
                 import lightgbm as lgb
                 model = lgb.Booster(model_file=base + ".txt")
-            return ShrunkModel(model, info.get("shrink", 1.0)), info
+            return model, info
         if os.path.exists(base + "_info.joblib") and os.path.exists(base + ".joblib"):   # format lama
             info = joblib.load(base + "_info.joblib")
             return joblib.load(base + ".joblib"), info
@@ -270,6 +256,26 @@ def predict_future_recursive(model, df_series, steps_ahead, window_size, future_
         preds.append(p)
         history.append(p)
     return pd.Series(preds, index=list(future_dates[:steps_ahead]))
+
+
+def historical_range(series, steps, lo=0.10, hi=0.90, min_samples=60):
+    """
+    Rentang harga yang WAJAR (bukan ramalan titik) untuk 1..steps hari kerja ke depan, dari sebaran historis
+    perubahan harga k hari kerja pada atribut itu: harga terakhir * (1 + kuantil 10% / 90% perubahan k hari).
+    Hasilnya DataFrame (index 1..steps) berkolom 'lo' dan 'hi'; NaN bila riwayat terlalu pendek.
+    Pada uji di data latih -> data uji, rentang 10-90% ini memuat harga aktual pada kira-kira 90% kasus (konservatif).
+    """
+    s = pd.Series(series, dtype=float).dropna()
+    last = float(s.iloc[-1])
+    rows = []
+    for k in range(1, steps + 1):
+        ch = (s.shift(-k) / s - 1.0).dropna()
+        if len(ch) < min_samples:
+            rows.append((np.nan, np.nan))
+        else:
+            q_lo, q_hi = np.quantile(ch.values, [lo, hi])
+            rows.append((last * (1.0 + q_lo), last * (1.0 + q_hi)))
+    return pd.DataFrame(rows, index=range(1, steps + 1), columns=["lo", "hi"])
 
 
 def steps_to_date(last_date, target_date):

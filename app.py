@@ -1,5 +1,7 @@
+import calendar
 import json
 import os
+from datetime import date
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -25,7 +27,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-MAX_STEPS = 250
+MAX_STEPS = 750
 NA_LABEL = "Tidak terdefinisi"
 HISTORY_WINDOW = 180
 
@@ -298,6 +300,46 @@ st.markdown(
         font-size: 0.75rem;
         margin-top: 5px;
     }
+    /* Popup kalender berada di portal Streamlit, bukan di tombol stPopover. */
+    div[data-testid="stPopoverBody"]:has(.compact-calendar-marker),
+    div[data-baseweb="popover"]:has(.compact-calendar-marker) > div {
+        width: 310px !important;
+        min-width: 310px !important;
+        max-width: 310px !important;
+        box-sizing: border-box !important;
+    }
+    div[data-testid="stPopoverBody"]:has(.compact-calendar-marker) {
+        padding: 10px !important;
+        overflow-x: hidden !important;
+    }
+    /* Paksa kolom Streamlit muat dalam kalender 310px. */
+    div[data-testid="stPopoverBody"]:has(.compact-calendar-marker) [data-testid="stHorizontalBlock"] {
+        gap: 2px !important;
+        flex-wrap: nowrap !important;
+        min-width: 0 !important;
+    }
+    div[data-testid="stPopoverBody"]:has(.compact-calendar-marker) [data-testid="column"] {
+        min-width: 0 !important;
+        width: 0 !important;
+        padding: 0 !important;
+    }
+    div[data-testid="stPopoverBody"]:has(.compact-calendar-marker) [data-testid="stVerticalBlock"] {
+        gap: 3px !important;
+    }
+    div[data-testid="stPopoverBody"]:has(.compact-calendar-marker) [data-testid="stButton"] button {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 30px !important;
+        height: 30px !important;
+        padding: 0 !important;
+        border-radius: 6px !important;
+        font-size: 12px !important;
+    }
+    div[data-testid="stPopoverBody"]:has(.compact-calendar-marker) [data-testid="stCaptionContainer"] p {
+        font-size: 10px !important;
+        margin: 0 !important;
+    }
+    .compact-calendar-marker {display:none;}
     </style>
     """,
     unsafe_allow_html=True,
@@ -509,6 +551,24 @@ def format_rp_axis(ax):
     ax.yaxis.set_major_formatter(
         plt.FuncFormatter(lambda value, _: f"{value:,.0f}")
     )
+
+
+# -----------------------------------------------------------------------------
+# KALENDER POPUP KUSTOM: navigasi tetap DI DALAM popover
+# -----------------------------------------------------------------------------
+def calendar_shift_month(view_key, amount, minimum, maximum):
+    """Pindah tampilan bulan/tahun tanpa mengubah tanggal prediksi terpilih."""
+    current = pd.Timestamp(st.session_state[view_key])
+    shifted = (current + pd.DateOffset(months=amount)).replace(day=1)
+    low = pd.Timestamp(minimum).replace(day=1)
+    high = pd.Timestamp(maximum).replace(day=1)
+    st.session_state[view_key] = max(low, min(shifted, high)).date()
+
+
+def calendar_choose_day(selected_key, view_key, chosen):
+    """Mengubah tanggal target hanya ketika pengguna menekan angka tanggal."""
+    st.session_state[selected_key] = chosen
+    st.session_state[view_key] = chosen.replace(day=1)
 
 
 def get_model_and_info(attribute):
@@ -809,25 +869,117 @@ elif page == "Data dan Visualisasi Harga":
             periods=1,
         )[0]
 
-        # Batas maksimal pemilihan tanggal: 250 hari kerja ke depan.
+        # Batas maksimal pemilihan tanggal mengikuti MAX_STEPS hari kerja.
         max_forecast_date = pd.bdate_range(
             start=last_date + pd.Timedelta(days=1),
             periods=MAX_STEPS,
         )[-1]
 
+        min_date = first_forecast_date.date()
+        max_date = max_forecast_date.date()
+        date_key = f"forecast_target_date_{selected_attr}_{last_date:%Y%m%d}"
+        view_key = f"calendar_visible_month_{selected_attr}_{last_date:%Y%m%d}"
+
+        if date_key not in st.session_state:
+            st.session_state[date_key] = min_date
+        if view_key not in st.session_state:
+            st.session_state[view_key] = st.session_state[date_key].replace(day=1)
+
+        # Perbaiki state jika rentang tanggal berubah karena dataset diperbarui.
+        if not min_date <= st.session_state[date_key] <= max_date:
+            st.session_state[date_key] = min_date
+            st.session_state[view_key] = min_date.replace(day=1)
+
+        selected_date = st.session_state[date_key]
+        visible_month = pd.Timestamp(st.session_state[view_key])
+        min_month = pd.Timestamp(min_date).replace(day=1)
+        max_month = pd.Timestamp(max_date).replace(day=1)
+
         with f3:
-            selected_date = st.date_input(
-                "🗓️ Pilih Tanggal Prediksi",
-                value=first_forecast_date.date(),
-                min_value=(last_date + pd.Timedelta(days=1)).date(),
-                max_value=max_forecast_date.date(),
-                format="DD/MM/YYYY",
-                key=f"forecast_target_date_{selected_attr}_{last_date:%Y%m%d}",
-                help=(
-                    "Pilih tanggal yang ingin diprediksi. "
-                    "Jika memilih Sabtu atau Minggu, prediksi menggunakan hari kerja berikutnya."
-                ),
+            st.markdown(
+                """
+                <div style="
+                    font-weight: 600;
+                    font-size: 14px;
+                    margin-bottom: 5px;
+                ">
+                    🗓️ Pilih Tanggal Prediksi
+                </div>
+                """,
+                unsafe_allow_html=True
             )
+            # st.popover menggantikan st.date_input: tidak akan muncul popup
+            # tanggal bawaan yang tak bisa ditambahi tombol khusus.
+            with st.popover(
+                f"📅 {selected_date:%d/%m/%Y}",
+                use_container_width=True,
+            ):
+                st.markdown('<span class="compact-calendar-marker"></span>', unsafe_allow_html=True)
+                # Navigasi DI DALAM popup, di atas nama hari dan angka tanggal.
+                prev_year, prev_month, month_title, next_month, next_year = st.columns(
+                    [1, 1, 3, 1, 1], gap="small"
+                )
+                with prev_year:
+                    st.button("«", key=f"py_{date_key}", help="Tahun sebelumnya",
+                              disabled=visible_month - pd.DateOffset(years=1) < min_month,
+                              on_click=calendar_shift_month,
+                              args=(view_key, -12, min_date, max_date),
+                              use_container_width=True)
+                with prev_month:
+                    st.button("‹", key=f"pm_{date_key}", help="Bulan sebelumnya",
+                              disabled=visible_month <= min_month,
+                              on_click=calendar_shift_month,
+                              args=(view_key, -1, min_date, max_date),
+                              use_container_width=True)
+                with month_title:
+                    st.markdown(
+                        f"<div style='text-align:center; font-weight:700; "
+                        f"padding-top:8px; white-space:nowrap;'>"
+                        f"{calendar.month_name[visible_month.month]} "
+                        f"{visible_month.year}</div>",
+                        unsafe_allow_html=True,
+                    )
+                with next_month:
+                    st.button("›", key=f"nm_{date_key}", help="Bulan berikutnya",
+                              disabled=visible_month >= max_month,
+                              on_click=calendar_shift_month,
+                              args=(view_key, 1, min_date, max_date),
+                              use_container_width=True)
+                with next_year:
+                    st.button("»", key=f"ny_{date_key}", help="Tahun berikutnya",
+                              disabled=visible_month + pd.DateOffset(years=1) > max_month,
+                              on_click=calendar_shift_month,
+                              args=(view_key, 12, min_date, max_date),
+                              use_container_width=True)
+
+                # Minggu dimulai hari Senin; tampilkan sel tanggal per minggu.
+                weekday_cols = st.columns(7, gap="small")
+                for i, label in enumerate(["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]):
+                    weekday_cols[i].caption(label)
+
+                weeks = calendar.monthcalendar(visible_month.year, visible_month.month)
+                for week_idx, week in enumerate(weeks):
+                    days = st.columns(7, gap="small")
+                    for weekday_idx, day_number in enumerate(week):
+                        with days[weekday_idx]:
+                            if day_number == 0:
+                                st.write(" ")
+                                continue
+                            candidate = date(visible_month.year, visible_month.month, day_number)
+                            st.button(
+                                str(day_number),
+                                key=f"calendar_{date_key}_{visible_month:%Y%m}_{day_number}",
+                                disabled=not (min_date <= candidate <= max_date),
+                                type="secondary",
+                                use_container_width=True,
+                                on_click=calendar_choose_day,
+                                args=(date_key, view_key, candidate),
+                            )
+                st.caption(
+                    f"Tanggal tersedia: {min_date:%d/%m/%Y} sampai "
+                    f"{max_date:%d/%m/%Y}. Akhir pekan dialihkan "
+                    "ke hari kerja berikutnya."
+                )
 
     # Tanggal yang diminta pengguna.
     requested_date = pd.Timestamp(selected_date).normalize()

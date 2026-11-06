@@ -6,11 +6,11 @@ Perubahan dari versi sebelumnya (menjawab masukan dosen):
    tetapi dicari otomatis dengan Optuna (TPE) + TimeSeriesSplit cross-validation
    yang HANYA memakai data latih (70% awal data), sehingga data uji tidak bocor.
 2. Pemilihan model & input window terbaik memakai skor CV (data latih), bukan MAE data uji.
-3. Metrik evaluasi: MAE, RMSE, dan R2 (ditambah pembanding "Naive" = harga dianggap tetap).
+3. Metrik evaluasi: MAE, RMSE, dan R2.
 4. R2 yang tidak terdefinisi (data uji konstan -> variansi 0) dicatat sebagai NaN,
    bukan 0, supaya tidak menyesatkan.
 5. Prediksi periode uji disimpan (test_predictions.csv) untuk grafik aktual vs prediksi.
-6. Evaluasi prediksi REKURSIF multi-hari (1, 5, 22 hari kerja) vs pembanding naive -> eval_horizon.csv,
+6. Evaluasi prediksi REKURSIF multi-hari (1, 5, 22 hari kerja) -> eval_horizon.csv,
    plus pemeriksaan otomatis (fitur prediksi = fitur training, tanpa kebocoran) -> validation_report.json.
 
 Cara pakai:
@@ -34,7 +34,7 @@ from sklearn.model_selection import TimeSeriesSplit
 from xgboost import XGBRegressor
 
 from common import (
-    ATTR_TO_GROUP, ShrunkModel, build_features, check_feature_parity, load_and_preprocess_data,
+    ATTR_TO_GROUP, build_features, check_feature_parity, load_and_preprocess_data,
     predict_future_recursive, save_model_files,
 )
 
@@ -58,12 +58,12 @@ SEED = 42
 EVAL_HORIZONS = [1, 5, 22]       # evaluasi prediksi rekursif: 1 hari, 1 minggu, 1 bulan kerja
 ALL_MODELS = ["XGBoost", "LightGBM"]
 
-# Faktor "shrink" ke naive: prediksi akhir = harga kemarin * (1 + shrink * perubahan_prediksi_model).
-# Dipilih per atribut dari out-of-fold CV pada DATA LATIH saja (0 = naive murni, 1 = model penuh).
-SHRINK_GRID = [0.0, 0.25, 0.5, 0.75, 1.0]
+# Loss yang dipakai kedua algoritma. "mse" (kuadrat) membuat model berani memprediksi perubahan harga. Loss "mae"
+# pada harga yang sering datar menghasilkan prediksi perubahan nol di hampir semua hari (prediksi jadi garis datar).
+LOSS = "mse"
 
 # Titik awal pencarian = pengaturan lama (supaya hasil tuning minimal sebaik versi lama di CV)
-BASELINE_PARAMS = {"loss": "mse", "n_estimators": 100, "learning_rate": 0.05}
+BASELINE_PARAMS = {"n_estimators": 100, "learning_rate": 0.05}
 
 # ----------------------------------------------------------------------------
 # METRIK EVALUASI
@@ -109,24 +109,17 @@ def split_train_test(df_feat, train_end, test_start):
 # MODEL & PENCARIAN HYPERPARAMETER (OPTUNA + TimeSeriesSplit)
 # ----------------------------------------------------------------------------
 def make_model(name, params):
-    """
-    `params["loss"]` ("mae" atau "mse") ikut dicari Optuna. MAE = sama dengan metrik evaluasi & kebal lonjakan,
-    tetapi pada harga yang sering datar ia cenderung memprediksi 0 perubahan (= naive). MSE lebih berani menebak
-    perubahan; faktor shrink (dipilih di data latih) menahan kalau tebakannya tidak terbukti membantu.
-    """
+    """Model dengan loss kuadrat (lihat LOSS). Hyperparameter lainnya dicari Optuna."""
     params = dict(params)
-    loss = params.pop("loss", "mae")
+    params.pop("loss", None)
     if name == "XGBoost":
-        obj = "reg:absoluteerror" if loss == "mae" else "reg:squarederror"
-        return XGBRegressor(objective=obj, random_state=SEED, n_jobs=1, verbosity=0, **params)
-    obj = "l1" if loss == "mae" else "l2"
-    return LGBMRegressor(objective=obj, random_state=SEED, n_jobs=1, verbose=-1, subsample_freq=1, **params)
+        return XGBRegressor(objective="reg:squarederror", random_state=SEED, n_jobs=1, verbosity=0, **params)
+    return LGBMRegressor(objective="l2", random_state=SEED, n_jobs=1, verbose=-1, subsample_freq=1, **params)
 
 
 def suggest_params(trial, name):
     """Ruang pencarian hyperparameter tiap algoritma (model dangkal & teregularisasi: datanya hanya ~650 baris)."""
     params = {
-        "loss": trial.suggest_categorical("loss", ["mae", "mse"]),
         "n_estimators": trial.suggest_int("n_estimators", 50, 400, step=25),
         "learning_rate": trial.suggest_float("learning_rate", 0.01, 0.3, log=True),
         "subsample": trial.suggest_float("subsample", 0.6, 1.0),
@@ -154,17 +147,10 @@ def _oof_predictions(name, params, X, y, tscv):
     return np.concatenate(idx), np.concatenate(preds)
 
 
-def _best_shrink(pred_ret, y_ret, prev):
-    """Pilih shrink dari SHRINK_GRID yang meminimalkan MAE (Rupiah) out-of-fold. Mengembalikan (shrink, mae, mae_naive)."""
-    scores = {a: float(np.mean(np.abs(a * pred_ret - y_ret) * prev)) for a in SHRINK_GRID}
-    best_a = min(SHRINK_GRID, key=lambda a: (scores[a], a))   # seri -> shrink lebih kecil (lebih dekat naive)
-    return best_a, scores[best_a], float(np.mean(np.abs(y_ret) * prev))
-
-
 def tune_model(name, X_train, y_train, prev_train, n_trials):
     """
-    Cari hyperparameter + shrink terbaik. Skor = MAE (Rupiah) out-of-fold pada TimeSeriesSplit,
-    HANYA memakai data latih. Mengembalikan (params, shrink, cv_mae, cv_mae_naive).
+    Cari hyperparameter terbaik (loss tetap kuadrat). Skor = MAE (Rupiah) 1-hari out-of-fold pada TimeSeriesSplit,
+    HANYA memakai data latih. Mengembalikan (params, cv_mae).
     """
     tscv = TimeSeriesSplit(n_splits=CV_SPLITS)
     prev = prev_train.to_numpy(dtype=float)
@@ -173,15 +159,12 @@ def tune_model(name, X_train, y_train, prev_train, n_trials):
     def objective(trial):
         params = suggest_params(trial, name)
         idx, pred = _oof_predictions(name, params, X_train, y_train, tscv)
-        return _best_shrink(pred, y[idx], prev[idx])[1]
+        return float(np.mean(np.abs(pred - y[idx]) * prev[idx]))
 
     study = optuna.create_study(direction="minimize", sampler=optuna.samplers.TPESampler(seed=SEED))
     study.enqueue_trial(BASELINE_PARAMS)  # pengaturan lama dicoba pertama sebagai pembanding
     study.optimize(objective, n_trials=n_trials)
-    params = study.best_params
-    idx, pred = _oof_predictions(name, params, X_train, y_train, tscv)
-    shrink, cv_mae, cv_naive = _best_shrink(pred, y[idx], prev[idx])
-    return params, shrink, cv_mae, cv_naive
+    return study.best_params, float(study.best_value)
 
 
 # ----------------------------------------------------------------------------
@@ -191,12 +174,12 @@ def evaluate_horizons(model, series, window_size, first_test_date):
     """
     Evaluasi jujur untuk prediksi ke depan: dari setiap hari asal (origin) di periode uji, model
     meramal H hari ke depan SECARA REKURSIF (hanya memakai harga sampai hari asal), lalu dibandingkan
-    dengan harga aktual. `model` harus dilatih hanya pada data latih. Pembanding naive = harga hari asal.
+    dengan harga aktual. `model` harus dilatih hanya pada data latih.
     """
     max_h = max(EVAL_HORIZONS)
     n = len(series)
     first_origin = max(series.index.get_loc(first_test_date) - 1, 0)   # hari terakhir sebelum periode uji
-    pairs = {h: [] for h in EVAL_HORIZONS}          # h -> daftar (aktual, prediksi, naive)
+    pairs = {h: [] for h in EVAL_HORIZONS}          # h -> daftar (aktual, prediksi)
     for p in range(first_origin, n - 1):
         steps = min(max_h, n - 1 - p)
         fut = predict_future_recursive(
@@ -204,15 +187,14 @@ def evaluate_horizons(model, series, window_size, first_test_date):
         )
         for h in EVAL_HORIZONS:
             if h <= steps:
-                pairs[h].append((series.iloc[p + h], fut.iloc[h - 1], series.iloc[p]))
+                pairs[h].append((series.iloc[p + h], fut.iloc[h - 1]))
     out = {}
     for h, rows in pairs.items():
         if not rows:
             continue
-        a, f, nv = (np.array(x, dtype=float) for x in zip(*rows))
+        a, f = (np.array(x, dtype=float) for x in zip(*rows))
         out[h] = {
             "N": len(a), "MAE": float(np.mean(np.abs(a - f))), "RMSE": float(np.sqrt(np.mean((a - f) ** 2))),
-            "MAE Naive": float(np.mean(np.abs(a - nv))), "RMSE Naive": float(np.sqrt(np.mean((a - nv) ** 2))),
         }
     return out
 
@@ -229,17 +211,16 @@ def process_attribute(attr, series, n_trials, model_names):
         df_feat = build_features(series, window_size=w)
         X_train, y_train, p_train, X_test, y_test, p_test = split_train_test(df_feat, train_end, test_start)
 
-        # harga aktual hari uji & baseline naive (harga hari uji = harga kemarin)
+        # harga aktual hari uji
         y_test_price = pd.Series(p_test.to_numpy() * (1.0 + y_test.to_numpy()), index=y_test.index)
-        mae_naive = float(mean_absolute_error(y_test_price, p_test))
 
         for name in model_names:
-            best_params, shrink, cv_mae, cv_naive = tune_model(name, X_train, y_train, p_train, n_trials)
+            best_params, cv_mae = tune_model(name, X_train, y_train, p_train, n_trials)
 
             # model untuk EVALUASI: dilatih hanya pada data latih, prediksi = persentase perubahan
             model = make_model(name, best_params)
             model.fit(X_train, y_train)
-            pred_ret = shrink * np.asarray(model.predict(X_test), dtype=float)
+            pred_ret = np.asarray(model.predict(X_test), dtype=float)
             pred = p_test.to_numpy(dtype=float) * (1.0 + pred_ret)   # kembali ke Rupiah
 
             metrics = evaluate(y_test_price, pred)
@@ -250,10 +231,7 @@ def process_attribute(attr, series, n_trials, model_names):
                 "Model": name,
                 "Input Window (Hari)": w,
                 "CV MAE": cv_mae,
-                "CV MAE Naive": cv_naive,
-                "Shrink": shrink,
                 **metrics,
-                "MAE Naive": mae_naive,
                 "Dipilih": False,
             })
             candidates.append({
@@ -261,7 +239,6 @@ def process_attribute(attr, series, n_trials, model_names):
                 "name": name,
                 "window": w,
                 "params": best_params,
-                "shrink": shrink,
                 "cv_mae": cv_mae,
                 "metrics": metrics,
                 "y_test": y_test_price,
@@ -282,7 +259,7 @@ def process_attribute(attr, series, n_trials, model_names):
         raise ValueError(f"{attr}: data uji tidak berada setelah data latih (kebocoran).")
 
     # Evaluasi prediksi rekursif multi-hari (model dilatih hanya pada data latih)
-    hz = evaluate_horizons(ShrunkModel(best["model"], best["shrink"]), series, best["window"], best["y_test"].index.min())
+    hz = evaluate_horizons(best["model"], series, best["window"], best["y_test"].index.min())
     horizon_rows = [{
         "Kelompok": group_name, "Atribut": attr, "Model": best["name"], "Input Window (Hari)": best["window"],
         "Horizon (Hari Kerja)": h, **m,
@@ -297,7 +274,6 @@ def process_attribute(attr, series, n_trials, model_names):
         "model_name": best["name"],
         "window": best["window"],
         "params": best["params"],
-        "shrink": best["shrink"],
         "cv_mae": best["cv_mae"],
         "mae": best["metrics"]["MAE"],
         "rmse": best["metrics"]["RMSE"],
@@ -339,7 +315,7 @@ def run_training_pipeline(n_trials=DEFAULT_TRIALS, model_names=None, n_jobs=4):
         all_test_pred.append(test_pred)
         all_horizon.extend(horizon_rows)
         all_checks.append(check)
-        best_params_dump[attr] = {k: info[k] for k in ("model_name", "window", "params", "shrink", "cv_mae")}
+        best_params_dump[attr] = {k: info[k] for k in ("model_name", "window", "params", "cv_mae")}
 
     pd.DataFrame(all_rows).to_csv("eval_results.csv", index=False)
     pd.concat(all_test_pred).to_csv("test_predictions.csv", index=False)
