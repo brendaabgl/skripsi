@@ -1145,11 +1145,6 @@ elif page == "Data dan Visualisasi Harga":
                 fmt_rp(predicted_price),
                 f"Estimasi pada {effective_date_text}",
             )
-        st.caption(
-            f"Model: {model_info['model_name']} | Input window: {model_info['window']} hari. "
-            "Prediksi merupakan estimasi berdasarkan hari kerja Senin-Jumat; "
-            "hari libur nasional belum dikecualikan."
-        )
     else:
         st.warning(
             "Prediksi belum dapat ditampilkan. Pastikan model untuk atribut ini tersedia dan sudah dilatih. "
