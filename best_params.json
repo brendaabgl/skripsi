@@ -1,22 +1,6 @@
 {
   "Beras Kualitas Bawah I": {
     "model_name": "LightGBM",
-    "window": 22,
-    "params": {
-      "n_estimators": 350,
-      "learning_rate": 0.07725378389307355,
-      "subsample": 0.8832290311184181,
-      "colsample_bytree": 0.608233797718321,
-      "reg_alpha": 5.360294728728285,
-      "reg_lambda": 0.31044435499483225,
-      "max_depth": 2,
-      "num_leaves": 9,
-      "min_child_samples": 19
-    },
-    "cv_mae": 17.161010355789564
-  },
-  "Beras Kualitas Bawah II": {
-    "model_name": "LightGBM",
     "window": 3,
     "params": {
       "n_estimators": 350,
@@ -29,7 +13,23 @@
       "num_leaves": 9,
       "min_child_samples": 19
     },
-    "cv_mae": 22.647345624882192
+    "cv_mae": 17.135301841512785
+  },
+  "Beras Kualitas Bawah II": {
+    "model_name": "LightGBM",
+    "window": 5,
+    "params": {
+      "n_estimators": 275,
+      "learning_rate": 0.021268705893820954,
+      "subsample": 0.9871244035068378,
+      "colsample_bytree": 0.759153217517182,
+      "reg_alpha": 0.09746833931080194,
+      "reg_lambda": 8.28210289843703,
+      "max_depth": 2,
+      "num_leaves": 8,
+      "min_child_samples": 16
+    },
+    "cv_mae": 22.450621418673265
   },
   "Beras Kualitas Medium I": {
     "model_name": "XGBoost",
@@ -44,11 +44,11 @@
       "max_depth": 3,
       "min_child_weight": 8
     },
-    "cv_mae": 19.4221771828921
+    "cv_mae": 19.375875380377973
   },
   "Beras Kualitas Medium II": {
     "model_name": "LightGBM",
-    "window": 5,
+    "window": 3,
     "params": {
       "n_estimators": 350,
       "learning_rate": 0.07589390402327824,
@@ -60,7 +60,7 @@
       "num_leaves": 11,
       "min_child_samples": 12
     },
-    "cv_mae": 15.947473373651809
+    "cv_mae": 15.914473246384636
   },
   "Beras Kualitas Super I": {
     "model_name": "LightGBM",
@@ -76,7 +76,7 @@
       "num_leaves": 9,
       "min_child_samples": 19
     },
-    "cv_mae": 24.510463342243263
+    "cv_mae": 24.472321880664538
   },
   "Beras Kualitas Super II": {
     "model_name": "XGBoost",
@@ -91,39 +91,37 @@
       "max_depth": 2,
       "min_child_weight": 3
     },
-    "cv_mae": 23.244094857462407
+    "cv_mae": 23.235466828759236
   },
   "Daging Ayam Ras Segar": {
-    "model_name": "LightGBM",
-    "window": 22,
+    "model_name": "XGBoost",
+    "window": 10,
     "params": {
-      "n_estimators": 300,
-      "learning_rate": 0.029733060634589806,
-      "subsample": 0.7359845891859824,
-      "colsample_bytree": 0.6470632789601889,
-      "reg_alpha": 0.620613030378025,
-      "reg_lambda": 3.8620597192389754,
-      "max_depth": 2,
-      "num_leaves": 7,
-      "min_child_samples": 23
+      "n_estimators": 125,
+      "learning_rate": 0.011647100658205255,
+      "subsample": 0.6225384564979907,
+      "colsample_bytree": 0.9966725128306906,
+      "reg_alpha": 0.49605813829668455,
+      "reg_lambda": 1.2592707001706935,
+      "max_depth": 3,
+      "min_child_weight": 2
     },
-    "cv_mae": 284.4148918287793
+    "cv_mae": 282.9498844569739
   },
   "Daging Sapi Kualitas 1": {
-    "model_name": "LightGBM",
-    "window": 3,
+    "model_name": "XGBoost",
+    "window": 22,
     "params": {
-      "n_estimators": 350,
-      "learning_rate": 0.07725378389307355,
-      "subsample": 0.8832290311184181,
-      "colsample_bytree": 0.608233797718321,
-      "reg_alpha": 5.360294728728285,
-      "reg_lambda": 0.31044435499483225,
+      "n_estimators": 150,
+      "learning_rate": 0.18750295761285596,
+      "subsample": 0.8298549893290306,
+      "colsample_bytree": 0.9950370961750165,
+      "reg_alpha": 0.0477222252711607,
+      "reg_lambda": 0.0005843275612677536,
       "max_depth": 2,
-      "num_leaves": 9,
-      "min_child_samples": 19
+      "min_child_weight": 3
     },
-    "cv_mae": 585.5006205407998
+    "cv_mae": 584.6013700567568
   },
   "Daging Sapi Kualitas 2": {
     "model_name": "LightGBM",
@@ -139,39 +137,39 @@
       "num_leaves": 9,
       "min_child_samples": 19
     },
-    "cv_mae": 467.5767154196541
+    "cv_mae": 467.52410741239845
   },
   "Telur Ayam Ras Segar": {
     "model_name": "LightGBM",
     "window": 10,
     "params": {
       "n_estimators": 225,
-      "learning_rate": 0.07044532319044308,
-      "subsample": 0.7288305229774187,
-      "colsample_bytree": 0.6780549676063967,
-      "reg_alpha": 0.3647589751941394,
-      "reg_lambda": 5.202174274100287,
+      "learning_rate": 0.032354729046499844,
+      "subsample": 0.6590671576505339,
+      "colsample_bytree": 0.7132503481712308,
+      "reg_alpha": 0.3795505923229831,
+      "reg_lambda": 2.0627828804828594,
       "max_depth": 2,
-      "num_leaves": 5,
+      "num_leaves": 4,
       "min_child_samples": 15
     },
-    "cv_mae": 112.45777213066047
+    "cv_mae": 112.84222381888493
   },
   "Bawang Merah Ukuran Sedang": {
     "model_name": "LightGBM",
-    "window": 3,
+    "window": 22,
     "params": {
-      "n_estimators": 275,
-      "learning_rate": 0.03567236669163838,
-      "subsample": 0.6979258299997113,
-      "colsample_bytree": 0.7784800236637431,
-      "reg_alpha": 1.0962045774264222,
-      "reg_lambda": 0.0017198240745818038,
+      "n_estimators": 375,
+      "learning_rate": 0.08005362940815727,
+      "subsample": 0.9269865454379079,
+      "colsample_bytree": 0.6493674527356981,
+      "reg_alpha": 1.2814428388981147,
+      "reg_lambda": 0.6337975736028162,
       "max_depth": 2,
       "num_leaves": 8,
-      "min_child_samples": 14
+      "min_child_samples": 26
     },
-    "cv_mae": 617.2510010622066
+    "cv_mae": 617.1097294893202
   },
   "Bawang Putih Ukuran Sedang": {
     "model_name": "XGBoost",
@@ -186,7 +184,7 @@
       "max_depth": 2,
       "min_child_weight": 13
     },
-    "cv_mae": 175.06152853588858
+    "cv_mae": 174.80320135555286
   },
   "Cabai Merah Besar": {
     "model_name": "XGBoost",
@@ -201,9 +199,24 @@
       "max_depth": 3,
       "min_child_weight": 3
     },
-    "cv_mae": 1255.2259307361062
+    "cv_mae": 1259.428267411909
   },
   "Cabai Merah Keriting": {
+    "model_name": "XGBoost",
+    "window": 5,
+    "params": {
+      "n_estimators": 250,
+      "learning_rate": 0.01108617389485966,
+      "subsample": 0.7709496047736063,
+      "colsample_bytree": 0.931759692203239,
+      "reg_alpha": 1.0949146810565507,
+      "reg_lambda": 0.014221874107372837,
+      "max_depth": 2,
+      "min_child_weight": 1
+    },
+    "cv_mae": 1228.0072877179405
+  },
+  "Cabai Rawit Hijau": {
     "model_name": "LightGBM",
     "window": 3,
     "params": {
@@ -217,37 +230,23 @@
       "num_leaves": 9,
       "min_child_samples": 19
     },
-    "cv_mae": 1235.2472270457454
-  },
-  "Cabai Rawit Hijau": {
-    "model_name": "XGBoost",
-    "window": 3,
-    "params": {
-      "n_estimators": 275,
-      "learning_rate": 0.0178601378893971,
-      "subsample": 0.6260206371941118,
-      "colsample_bytree": 0.9795542149013333,
-      "reg_alpha": 4.905556676028774,
-      "reg_lambda": 0.18861495878553936,
-      "max_depth": 3,
-      "min_child_weight": 2
-    },
-    "cv_mae": 968.5819180611138
+    "cv_mae": 981.9268715518145
   },
   "Cabai Rawit Merah": {
-    "model_name": "XGBoost",
+    "model_name": "LightGBM",
     "window": 10,
     "params": {
-      "n_estimators": 175,
-      "learning_rate": 0.013997420202567688,
-      "subsample": 0.6628331271515083,
-      "colsample_bytree": 0.8686695497899138,
-      "reg_alpha": 1.5876238005704528,
-      "reg_lambda": 9.035898231509522,
+      "n_estimators": 275,
+      "learning_rate": 0.2681974250763721,
+      "subsample": 0.9305492726530573,
+      "colsample_bytree": 0.6400051867621941,
+      "reg_alpha": 1.9213957791090317,
+      "reg_lambda": 9.546646775780058e-05,
       "max_depth": 3,
-      "min_child_weight": 4
+      "num_leaves": 8,
+      "min_child_samples": 27
     },
-    "cv_mae": 1973.5143699545386
+    "cv_mae": 1976.1155065838361
   },
   "Minyak Goreng Kemasan Bermerk 1": {
     "model_name": "LightGBM",
@@ -263,23 +262,22 @@
       "num_leaves": 10,
       "min_child_samples": 12
     },
-    "cv_mae": 57.19238720884669
+    "cv_mae": 57.29354912166663
   },
   "Minyak Goreng Kemasan Bermerk 2": {
-    "model_name": "LightGBM",
+    "model_name": "XGBoost",
     "window": 3,
     "params": {
-      "n_estimators": 350,
-      "learning_rate": 0.07725378389307355,
-      "subsample": 0.8832290311184181,
-      "colsample_bytree": 0.608233797718321,
-      "reg_alpha": 5.360294728728285,
-      "reg_lambda": 0.31044435499483225,
-      "max_depth": 2,
-      "num_leaves": 9,
-      "min_child_samples": 19
+      "n_estimators": 275,
+      "learning_rate": 0.0178601378893971,
+      "subsample": 0.6260206371941118,
+      "colsample_bytree": 0.9795542149013333,
+      "reg_alpha": 4.905556676028774,
+      "reg_lambda": 0.18861495878553936,
+      "max_depth": 3,
+      "min_child_weight": 2
     },
-    "cv_mae": 34.07764846926357
+    "cv_mae": 34.072860543534865
   },
   "Gula Pasir Kualitas Premium": {
     "model_name": "XGBoost",
@@ -294,21 +292,22 @@
       "max_depth": 2,
       "min_child_weight": 4
     },
-    "cv_mae": 15.734915573984944
+    "cv_mae": 15.590425017549425
   },
   "Gula Pasir Lokal": {
-    "model_name": "XGBoost",
+    "model_name": "LightGBM",
     "window": 3,
     "params": {
-      "n_estimators": 275,
-      "learning_rate": 0.0178601378893971,
-      "subsample": 0.6260206371941118,
-      "colsample_bytree": 0.9795542149013333,
-      "reg_alpha": 4.905556676028774,
-      "reg_lambda": 0.18861495878553936,
-      "max_depth": 3,
-      "min_child_weight": 2
+      "n_estimators": 350,
+      "learning_rate": 0.07725378389307355,
+      "subsample": 0.8832290311184181,
+      "colsample_bytree": 0.608233797718321,
+      "reg_alpha": 5.360294728728285,
+      "reg_lambda": 0.31044435499483225,
+      "max_depth": 2,
+      "num_leaves": 9,
+      "min_child_samples": 19
     },
-    "cv_mae": 17.047449787550804
+    "cv_mae": 17.03087650736644
   }
 }

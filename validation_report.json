@@ -3,64 +3,64 @@
     "Atribut": "Beras Kualitas Bawah I",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 679,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Beras Kualitas Bawah II",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Beras Kualitas Medium I",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 679,
+    "Baris latih": 680,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Beras Kualitas Medium II",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Beras Kualitas Super I",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Beras Kualitas Super II",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Daging Ayam Ras Segar",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 679,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Daging Sapi Kualitas 1",
@@ -68,26 +68,26 @@
     "Data uji setelah data latih": true,
     "Baris latih": 680,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Daging Sapi Kualitas 2",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Telur Ayam Ras Segar",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Bawang Merah Ukuran Sedang",
@@ -95,88 +95,88 @@
     "Data uji setelah data latih": true,
     "Baris latih": 680,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Bawang Putih Ukuran Sedang",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 679,
+    "Baris latih": 680,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Cabai Merah Besar",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Cabai Merah Keriting",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Cabai Rawit Hijau",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Cabai Rawit Merah",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Minyak Goreng Kemasan Bermerk 1",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Minyak Goreng Kemasan Bermerk 2",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Gula Pasir Kualitas Premium",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 679,
+    "Baris latih": 680,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   },
   {
     "Atribut": "Gula Pasir Lokal",
     "Fitur prediksi = fitur training": true,
     "Data uji setelah data latih": true,
-    "Baris latih": 680,
+    "Baris latih": 681,
     "Baris uji": 302,
-    "Latih s.d.": "2025-09-09",
-    "Uji mulai": "2025-09-10"
+    "Latih s.d.": "2025-09-10",
+    "Uji mulai": "2025-09-11"
   }
 ]

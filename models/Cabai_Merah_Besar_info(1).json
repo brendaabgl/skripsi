@@ -1,0 +1,18 @@
+{
+  "model_name": "XGBoost",
+  "window": 3,
+  "params": {
+    "n_estimators": 250,
+    "learning_rate": 0.02674072202104478,
+    "subsample": 0.6741458006294022,
+    "colsample_bytree": 0.9134091745057757,
+    "reg_alpha": 1.07081470265609,
+    "reg_lambda": 1.1902215451627538,
+    "max_depth": 3,
+    "min_child_weight": 3
+  },
+  "cv_mae": 1255.2259307361062,
+  "mae": 974.7123953583648,
+  "rmse": 2987.704009706287,
+  "r2": 0.9365351371439878
+}
