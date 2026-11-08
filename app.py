@@ -1,4 +1,5 @@
 import calendar
+from html import escape
 import json
 import os
 from datetime import date
@@ -831,7 +832,7 @@ with nav_menu:
     page = st.radio(
         "Navigasi",
         ["Dashboard", "Prediksi", "Evaluasi Model"],
-        index=1,
+        index=0,
         horizontal=True,
         label_visibility="collapsed",
         key="page_navigation",
@@ -1317,6 +1318,9 @@ elif page == "Prediksi":
                 price_band = None
         except Exception:
             price_band = None
+        st.caption(
+                    "**⚠️ Prediksi adalah estimasi, bukan harga pasti!!!** kalender hanya memperhitungkan Senin–Jumat."
+                )
 
     # ===============================================================
     # BARIS 1: DATA HARGA (KIRI) + RINGKASAN PREDIKSI (KANAN)
@@ -1447,6 +1451,8 @@ elif page == "Evaluasi Model":
     chosen["Kelompok"] = chosen["Atribut"].map(ATTR_TO_GROUP)
     chosen = chosen[chosen["Kelompok"].notna()].copy()
 
+    # Pertahankan dua panel berdampingan; gunakan tabel HTML responsif
+    # agar kolom R² tetap terlihat tanpa scroll horizontal.
     table_col, chart_col = st.columns([1.15, 1], gap="medium")
 
     with table_col:
@@ -1459,19 +1465,76 @@ elif page == "Evaluasi Model":
                 "Atribut": "Jenis Komoditas",
                 "R2": "R² Score",
             })
-            st.dataframe(
-                table_eval.style.format(
-                    {
-                        "MAE": "Rp {:,.2f}",
-                        "RMSE": "Rp {:,.2f}",
-                        "R² Score": "{:.4f}",
-                    },
-                    na_rep=NA_LABEL,
-                ),
-                hide_index=True,
-                use_container_width=True,
-                height=350,
+            # Tabel HTML memakai table-layout: fixed: semua enam kolom
+            # selalu muat di dalam panel kiri, termasuk kolom R².
+            st.markdown("""
+                <style>
+                .eval-table-scroll {
+                    max-height: 350px;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    border: 1px solid #dce5ed;
+                    border-radius: 9px;
+                    width: 100%;
+                }
+                .eval-table {
+                    table-layout: fixed;
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-family: Arial, sans-serif;
+                    font-size: clamp(8px, .72vw, 10.5px);
+                    color: #26364d;
+                }
+                .eval-table th, .eval-table td {
+                    border-bottom: 1px solid #e7edf2;
+                    border-right: 1px solid #e7edf2;
+                    padding: 7px 3px;
+                    vertical-align: middle;
+                    overflow-wrap: anywhere;
+                }
+                .eval-table th {
+                    background: #f7f9fc;
+                    color: #64748b;
+                    font-weight: 600;
+                    position: sticky;
+                    top: 0;
+                    z-index: 1;
+                    text-align: left;
+                }
+                .eval-table td.metric { text-align: right; white-space: nowrap; }
+                .eval-table td:last-child, .eval-table th:last-child { border-right: none; }
+                .eval-table tbody tr:hover { background: #f0f6fa; }
+                </style>
+            """, unsafe_allow_html=True)
+
+            table_rows = []
+            for _, result in table_eval.iterrows():
+                def metric_money(key):
+                    value = result[key]
+                    return (f"Rp {float(value):,.2f}" if pd.notna(value) else NA_LABEL)
+
+                r2 = (f"{float(result['R² Score']):.4f}"
+                      if pd.notna(result['R² Score']) else NA_LABEL)
+                table_rows.append(
+                    "<tr>"
+                    f"<td>{escape(str(result['Kelompok Komoditas']))}</td>"
+                    f"<td>{escape(str(result['Jenis Komoditas']))}</td>"
+                    f"<td>{escape(str(result['Model']))}</td>"
+                    f"<td class='metric'>{escape(metric_money('MAE'))}</td>"
+                    f"<td class='metric'>{escape(metric_money('RMSE'))}</td>"
+                    f"<td class='metric'>{escape(r2)}</td>"
+                    "</tr>"
+                )
+            html_table = (
+                '<div class="eval-table-scroll"><table class="eval-table">'
+                '<colgroup><col style="width:15%"><col style="width:29%">'
+                '<col style="width:12%"><col style="width:15%">'
+                '<col style="width:16%"><col style="width:13%"></colgroup>'
+                '<thead><tr><th>Kelompok</th><th>Jenis Komoditas</th>'
+                '<th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th></tr></thead>'
+                '<tbody>' + ''.join(table_rows) + '</tbody></table></div>'
             )
+            st.markdown(html_table, unsafe_allow_html=True)
 
     with chart_col:
         with st.container(border=True):
@@ -1548,8 +1611,38 @@ elif page == "Evaluasi Model":
             )
 
 
-    # Ringkasan model yang paling sering dipilih berdasarkan validasi data latih.
+    # Ringkasan berdasarkan model yang dipilih untuk setiap atribut.
     chosen, best_model_row = get_best_model_summary(df_eval_results)
+    xgb_chosen = chosen[
+        chosen["Model"].astype(str).str.strip().str.lower() == "xgboost"
+    ]
+    if not xgb_chosen.empty:
+        xgb_mae = fmt_rp(xgb_chosen["MAE"].mean())
+        xgb_rmse = fmt_rp(xgb_chosen["RMSE"].mean())
+        xgb_r2 = fmt_r2(xgb_chosen["R2"].mean())
+        xgb_count = xgb_chosen["Atribut"].nunique()
+        xgb_section = f"""
+            <div style="border-top:1px solid #cbd9e5;margin-top:12px;padding-top:10px;
+                        display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;gap:12px;align-items:center;">
+                <div>
+                    <div style="font-size:.90rem;font-weight:800;color:#26364d;">XGBoost</div>
+                    <div style="font-size:.70rem;color:#607189;">
+                        Rata-rata pengujian pada {xgb_count} atribut yang memilih XGBoost
+                    </div>
+                </div>
+                <div style="text-align:center;font-size:.78rem;color:#475569;">MAE<br>
+                    <b style="color:#14213d;font-size:.90rem;">{xgb_mae}</b></div>
+                <div style="text-align:center;font-size:.78rem;color:#475569;">RMSE<br>
+                    <b style="color:#14213d;font-size:.90rem;">{xgb_rmse}</b></div>
+                <div style="text-align:center;font-size:.78rem;color:#475569;">R² Score<br>
+                    <b style="color:#14213d;font-size:.90rem;">{xgb_r2}</b></div>
+            </div>
+        """
+        # Hilangkan indentasi dan newline agar HTML tidak dibaca sebagai blok kode Markdown.
+        xgb_section = "".join(line.strip() for line in xgb_section.splitlines())
+    else:
+        xgb_section = ""  # Tidak mengarang nilai jika tidak ada atribut terpilih XGBoost.
+
     st.write("")
     st.markdown(
         f"""
@@ -1565,8 +1658,7 @@ elif page == "Evaluasi Model":
                 <div class="mini-metric"><div class="mini-label">MAE</div><div class="mini-value">{fmt_rp(best_model_row['MAE'])}</div></div>
                 <div class="mini-metric"><div class="mini-label">RMSE</div><div class="mini-value">{fmt_rp(best_model_row['RMSE'])}</div></div>
                 <div class="mini-metric"><div class="mini-label">R² Score</div><div class="mini-value">{fmt_r2(best_model_row['R2'])}</div></div>
-            </div>
-        </div>
+            </div>{xgb_section}</div>
         """,
         unsafe_allow_html=True,
     )
