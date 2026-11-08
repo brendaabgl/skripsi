@@ -1,3 +1,10 @@
+# File ini mengatur tampilan website prediksi harga pangan memakai Streamlit.
+# Alurnya: mengambil data harga dan hasil evaluasi yang sudah ada, memuat model yang telah dilatih,
+# lalu menghasilkan prediksi dan menampilkan informasi melalui tiga halaman website.
+# Proses melatih model tidak dijalankan di file ini; model dipanggil dari fungsi pada common.py.
+#
+# Library di bawah dipakai untuk kalender, membaca file, mengolah angka dan tabel,
+# membuat grafik, serta membangun tampilan website.
 import calendar
 from html import escape
 import json
@@ -9,6 +16,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+# Fungsi dari common.py dipakai supaya proses pengolahan data dan prediksi
+# tidak perlu ditulis ulang di halaman website. Misalnya, ATTR_TO_GROUP mengelompokkan
+# jenis pangan, load_model mengambil model tersimpan, dan predict_future_recursive
+# menghitung prediksi beberapa hari ke depan menggunakan model tersebut.
 from common import (
     ATTR_TO_GROUP,
     check_data_quality,
@@ -22,6 +33,8 @@ from common import (
 # -----------------------------------------------------------------------------
 # KONFIGURASI HALAMAN
 # -----------------------------------------------------------------------------
+# Bagian ini mengatur identitas dan tata letak website, seperti judul tab browser,
+# ikon, lebar halaman, dan keadaan sidebar saat website pertama kali dibuka.
 st.set_page_config(
     page_title="Prediksi Harga Pangan DKI Jakarta",
     page_icon="🌾",
@@ -29,6 +42,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# MAX_STEPS membatasi jarak tanggal prediksi sampai 250 hari kerja dari data terakhir.
+# NA_LABEL adalah teks pengganti untuk hasil evaluasi yang tidak tersedia.
+# HISTORY_WINDOW membatasi jumlah observasi historis pada grafik gabungan agar lebih mudah dibaca;
+# grafik harga asli di halaman Prediksi tetap memakai seluruh riwayat yang tersedia.
 MAX_STEPS = 250
 NA_LABEL = "Tidak terdefinisi"
 HISTORY_WINDOW = 180
@@ -37,6 +54,9 @@ HISTORY_WINDOW = 180
 # -----------------------------------------------------------------------------
 # CSS - menyesuaikan tiga rancangan UI yang diberikan
 # -----------------------------------------------------------------------------
+# CSS di bawah hanya mengatur tampilan: warna, tulisan, posisi menu, kartu informasi,
+# tabel, tombol, tampilan mobile, dan kalender buatan sendiri. CSS tidak mengubah
+# data historis, rumus evaluasi, maupun cara model menghasilkan prediksi.
 st.markdown(
     """
     <style>
@@ -487,20 +507,29 @@ st.markdown(
 # -----------------------------------------------------------------------------
 # LOAD DATA DAN HASIL EVALUASI
 # -----------------------------------------------------------------------------
+# Cache menyimpan hasil pembacaan data agar website tidak mengolah ulang data yang sama
+# setiap kali pengguna mengganti menu atau pilihan. Parameter waktu perubahan file
+# membantu membuat cache diperbarui ketika sumber data berubah.
 @st.cache_data
 def load_data(file_mtime):
     return load_and_preprocess_data()
 
 
+# Fungsi ini mengambil pesan pemeriksaan kualitas data dari common.py.
+# Dengan cache, pemeriksaan tidak harus selalu diulang selama file sumber tidak berubah.
 @st.cache_data
 def load_quality_messages(file_mtime):
     return check_data_quality()
 
 
+# Mengambil waktu terakhir file diubah. Nilai ini dipakai sebagai penanda perubahan
+# supaya hasil bacaan CSV atau JSON dalam cache dapat diperbarui saat filenya diganti.
 def get_file_mtime(path):
     return os.path.getmtime(path) if os.path.exists(path) else 0
 
 
+# Membaca eval_results.csv yang berisi hasil evaluasi model dari proses training/pengujian sebelumnya.
+# Jika file belum tersedia, fungsi mengembalikan None agar bisa ditangani dengan pesan error.
 @st.cache_data
 def load_evaluation_results(file_mtime):
     if os.path.exists("eval_results.csv"):
@@ -508,6 +537,8 @@ def load_evaluation_results(file_mtime):
     return None
 
 
+# Membaca test_predictions.csv, yaitu hasil prediksi pada data uji yang sudah tersimpan.
+# Kolom Tanggal langsung dibaca sebagai tanggal agar mudah digunakan untuk analisis.
 @st.cache_data
 def load_test_predictions(file_mtime):
     if os.path.exists("test_predictions.csv"):
@@ -515,6 +546,8 @@ def load_test_predictions(file_mtime):
     return None
 
 
+# Membaca eval_horizon.csv yang menyimpan hasil evaluasi berdasarkan jarak prediksi
+# apabila file tersebut tersedia. Fungsi ini hanya membaca hasil yang sudah dihitung.
 @st.cache_data
 def load_horizon_results(file_mtime):
     if os.path.exists("eval_horizon.csv"):
@@ -522,6 +555,8 @@ def load_horizon_results(file_mtime):
     return None
 
 
+# Membaca validation_report.json sebagai data laporan validasi yang telah dibuat sebelumnya.
+# JSON diubah menjadi struktur data Python untuk bisa dipakai oleh program.
 @st.cache_data
 def load_validation_report(file_mtime):
     if os.path.exists("validation_report.json"):
@@ -530,6 +565,9 @@ def load_validation_report(file_mtime):
     return None
 
 
+# Saat website dimulai, bagian ini menemukan lokasi dataset, membaca harga historis,
+# lalu memuat hasil evaluasi, hasil uji, evaluasi horizon, dan laporan validasi.
+# Jadi website mengambil berkas hasil proses sebelumnya, bukan memulai training baru.
 DATA_PATH = find_dataset_path()
 DATA_MTIME = os.path.getmtime(DATA_PATH)
 df_data = load_data(DATA_MTIME).sort_index()
@@ -538,10 +576,14 @@ df_test_pred = load_test_predictions(get_file_mtime("test_predictions.csv"))
 df_horizon = load_horizon_results(get_file_mtime("eval_horizon.csv"))
 validation_report = load_validation_report(get_file_mtime("validation_report.json"))
 
+# Validasi awal: halaman dihentikan jika file evaluasi tidak ada. Ini penting karena
+# tabel evaluasi dan pemilihan model membutuhkan data hasil evaluasi tersebut.
 if df_eval_results is None:
     st.error("File 'eval_results.csv' belum ditemukan. Jalankan 'python train.py' terlebih dahulu.")
     st.stop()
 
+# Memastikan kolom wajib ada di hasil evaluasi sebelum tabel dan ringkasan dihitung.
+# Jika ada kolom yang kurang, website menampilkan pesan kesalahan agar tidak memakai data keliru.
 required_eval_cols = {"Kelompok", "Atribut", "Model", "MAE", "RMSE", "R2"}
 missing_cols = required_eval_cols - set(df_eval_results.columns)
 if missing_cols:
@@ -549,6 +591,8 @@ if missing_cols:
     st.stop()
 
 # Gunakan kelompok yang benar-benar memiliki atribut dalam dataset.
+# Pilihan kelompok dan jenis pangan dibuat hanya dari atribut yang benar-benar ada
+# pada dataset, supaya pengguna tidak memilih komoditas tanpa data harga.
 kelompok_options = list(dict.fromkeys(
     ATTR_TO_GROUP.get(attr, "Lainnya")
     for attr in df_data.columns
@@ -559,18 +603,24 @@ atribut_options = [attr for attr in ATTR_TO_GROUP if attr in df_data.columns]
 # -----------------------------------------------------------------------------
 # FUNGSI BANTU
 # -----------------------------------------------------------------------------
+# Mengubah angka R² menjadi teks dengan tiga angka di belakang koma.
+# Jika nilainya kosong, tampilkan teks penanda alih-alih angka yang menyesatkan.
 def fmt_r2(value):
     if pd.isna(value):
         return NA_LABEL
     return f"{float(value):.3f}"
 
 
+# Mengatur format angka harga menjadi teks Rupiah untuk ditampilkan pada kartu atau ringkasan.
+# Fungsi ini hanya mengubah tampilan angkanya, bukan nilai asli dalam perhitungan.
 def fmt_rp(value, decimals=0):
     if pd.isna(value):
         return "—"
     return f"Rp {float(value):,.{decimals}f}"
 
 
+# Mengatur tampilan nilai MAE, RMSE, dan R² pada tabel evaluasi.
+# MAE dan RMSE ditampilkan dalam format Rupiah, sedangkan R² berupa nilai desimal.
 def style_eval(frame):
     formats = {}
     for col in ["MAE", "RMSE"]:
@@ -581,6 +631,8 @@ def style_eval(frame):
     return frame.style.format(formats, na_rep=NA_LABEL)
 
 
+# Fungsi untuk membuat judul panel yang konsisten, lengkap dengan ikon dan keterangan.
+# Satu fungsi ini bisa dipanggil berulang tanpa menulis HTML yang sama di setiap halaman.
 def panel_heading(icon, title, subtitle=None):
     st.markdown(
         f"""
@@ -591,6 +643,7 @@ def panel_heading(icon, title, subtitle=None):
     )
 
 
+# Membuat kartu indikator ringkas untuk menonjolkan satu informasi utama beserta keterangannya.
 def kpi_card(icon, label, value, subtitle=""):
     st.markdown(
         f"""
@@ -607,6 +660,7 @@ def kpi_card(icon, label, value, subtitle=""):
     )
 
 
+# Membuat kotak metrik kecil yang digunakan untuk menyajikan angka evaluasi secara rapi.
 def mini_metric(label, value):
     st.markdown(
         f"""
@@ -619,6 +673,10 @@ def mini_metric(label, value):
     )
 
 
+# Menentukan model yang terpilih untuk setiap atribut komoditas.
+# Jika kolom Dipilih tersedia, program mengikuti tanda pilihan pada hasil evaluasi.
+# Jika tidak ada atau tidak menghasilkan baris, dipakai nilai CV MAE terendah
+# (atau MAE terendah jika CV MAE tidak tersedia) pada masing-masing atribut.
 def get_chosen_results(results):
     if "Dipilih" in results.columns:
         chosen = results[results["Dipilih"].astype(str).str.lower().isin(["true", "1", "yes"])].copy()
@@ -631,6 +689,9 @@ def get_chosen_results(results):
     return chosen
 
 
+# Merangkum model-model yang terpilih: jumlah atribut yang memilih setiap model
+# dan rata-rata metrik evaluasinya. Urutan ringkasan mempertimbangkan jumlah atribut,
+# lalu CV MAE jika kolom tersebut tersedia. Ini ringkasan hasil, bukan training.
 def get_best_model_summary(results):
     chosen = get_chosen_results(results)
     if "CV MAE" in chosen.columns:
@@ -661,6 +722,8 @@ def get_best_model_summary(results):
     return chosen, summary.iloc[0]
 
 
+# Menerjemahkan persen perubahan harga menjadi status naik, turun, atau relatif stabil.
+# Fungsi juga mengembalikan teks, warna CSS, dan simbol untuk tampilan.
 def status_from_change(pct):
     if pd.isna(pct) or abs(pct) < 1e-10:
         return "Tidak Naik", "Harga relatif stabil", "status-flat", "—"
@@ -669,6 +732,9 @@ def status_from_change(pct):
     return "Turun", "Harga cenderung turun", "status-down", f"↓ {pct:.1f}%"
 
 
+# Menyesuaikan batas sumbu Y grafik berdasarkan data yang sedang digambar.
+# Diberi sedikit ruang di bagian atas/bawah supaya perubahan harga lebih terlihat
+# tanpa memotong data atau mengubah angka harga yang sebenarnya.
 def tight_ylim(ax, *series_list):
     values = np.concatenate([
         np.asarray(series, dtype=float)
@@ -683,12 +749,16 @@ def tight_ylim(ax, *series_list):
     ax.set_ylim(low - pad, high + pad)
 
 
+# Memformat label angka di sumbu Y grafik sebagai angka harga dengan pemisah ribuan.
 def format_rp_axis(ax):
     ax.yaxis.set_major_formatter(
         plt.FuncFormatter(lambda value, _: f"{value:,.0f}")
     )
 
 
+# Dipanggil saat tombol panah bulan/tahun ditekan pada kalender kustom.
+# Fungsi menggeser BULAN YANG DITAMPILKAN saja dan membatasi ke rentang yang diizinkan.
+# Tanggal target prediksi yang sebelumnya dipilih tidak ikut berubah.
 def calendar_shift_month(view_key, amount, minimum, maximum):
     """Pindah tampilan bulan/tahun tanpa mengubah tanggal prediksi terpilih."""
     current = pd.Timestamp(st.session_state[view_key])
@@ -698,12 +768,18 @@ def calendar_shift_month(view_key, amount, minimum, maximum):
     st.session_state[view_key] = max(low, min(shifted, high)).date()
 
 
+# Dipanggil saat pengguna menekan angka tanggal pada kalender. Tanggal yang dipilih
+# disimpan di session_state agar Streamlit langsung memperbarui hasil prediksi
+# tanpa membutuhkan tombol "Tampilkan" atau "Prediksi" tambahan.
 def calendar_choose_day(selected_key, view_key, chosen):
     """Mengubah tanggal target hanya ketika pengguna menekan angka tanggal."""
     st.session_state[selected_key] = chosen
     st.session_state[view_key] = chosen.replace(day=1)
 
 
+# Mencoba mengambil model yang sudah disimpan beserta informasi pengaturannya
+# untuk satu atribut komoditas. Jika model hilang atau gagal dibaca, kesalahannya
+# dikembalikan sebagai teks agar halaman tidak langsung berhenti.
 def get_model_and_info(attribute):
     try:
         model, info = load_model(attribute)
@@ -711,10 +787,16 @@ def get_model_and_info(attribute):
     except (FileNotFoundError, RuntimeError, ValueError) as error:
         return None, None, str(error)
 
+# Menghitung estimasi satu hari kerja setelah data terakhir untuk semua atribut.
+# Setiap atribut memakai model tersimpan dan riwayat harganya sendiri. Hasilnya
+# digunakan pada tabel prediksi seluruh komoditas di halaman Evaluasi Model.
+# Cache mempertimbangkan waktu perubahan data dan berkas model.
 @st.cache_data(show_spinner=False)
 def get_all_next_day_predictions(data_mtime, model_versions):
     """Prediksi 1 hari kerja berikutnya untuk semua jenis komoditas."""
 
+    # Menentukan tanggal prediksi bersama, yaitu hari kerja berikutnya (Senin–Jumat)
+    #     # setelah tanggal data terakhir. Perhitungan ini belum mengecualikan libur nasional.
     target_date = pd.bdate_range(
         start=df_data.index.max() + pd.Timedelta(days=1),
         periods=1
@@ -723,6 +805,9 @@ def get_all_next_day_predictions(data_mtime, model_versions):
     rows = []
     errors = []
 
+    # Melakukan perhitungan satu per satu untuk setiap jenis pangan. Jika suatu atribut
+    #     # tidak memiliki data atau modelnya tidak bisa dibaca, atribut itu dicatat sebagai
+    #     # kendala tanpa menghentikan seluruh prediksi komoditas lainnya.
     for attr in atribut_options:
         series = df_data[attr].dropna().sort_index()
 
@@ -737,6 +822,8 @@ def get_all_next_day_predictions(data_mtime, model_versions):
             continue
 
         try:
+            # Fungsi ini menjalankan INFERENSI (membuat prediksi), bukan melatih model.
+            #             # steps_ahead=1 berarti hanya menghitung hari kerja berikutnya.
             hasil = predict_future_recursive(
                 model,
                 series,
@@ -751,6 +838,8 @@ def get_all_next_day_predictions(data_mtime, model_versions):
             if not np.isfinite(harga_prediksi):
                 raise ValueError("Prediksi tidak valid")
 
+            # Membandingkan prediksi dengan harga historis terakhir untuk mengetahui
+            #             # selisih Rupiah, persentase perubahan, dan kategorinya (Naik/Turun/Tetap).
             selisih = harga_prediksi - harga_terakhir
 
             perubahan = (
@@ -783,6 +872,9 @@ def get_all_next_day_predictions(data_mtime, model_versions):
     return pd.DataFrame(rows), errors, target_date
 
 
+# Mengumpulkan nama dan waktu perubahan file model di folder models.
+# Informasi ini membantu cache mengetahui kapan hasil prediksi perlu dihitung ulang
+# setelah file model diperbarui.
 def get_model_cache_signature():
     """Memperbarui cache ketika file model berubah."""
     import glob
@@ -801,10 +893,16 @@ def get_model_cache_signature():
 
 
 
+# 780 langkah hari kerja dipakai untuk proyeksi tiga tahun pada fungsi di bawah
+# (perkiraan 260 hari kerja per tahun). Ini berbeda dengan batas 250 hari kerja
+# untuk tanggal yang boleh dipilih pengguna pada halaman Prediksi.
 PROJECTION_STEPS = 780          # 3 tahun x 260 hari kerja
 BDAYS_PER_YEAR = 260
 
 
+# Membuat proyeksi panjang menggunakan model yang telah dilatih dan rentang
+# perubahan historis sebagai pembanding. Hasil disimpan dalam cache per atribut.
+# Keberadaan fungsi ini tidak berarti website sedang melatih model baru.
 @st.cache_data(show_spinner=False)
 def get_long_term_projection(attr, data_mtime, model_versions):
     """Proyeksi otomatis 3 tahun (hari kerja) dari data terakhir + rentang historis. Di-cache per atribut."""
@@ -819,6 +917,8 @@ def get_long_term_projection(attr, data_mtime, model_versions):
 # -----------------------------------------------------------------------------
 # NAVIGASI HORIZONTAL
 # -----------------------------------------------------------------------------
+# Bagian header dibagi menjadi tempat nama website, menu navigasi, dan tombol refresh.
+# Menu radio menentukan halaman mana yang akan ditampilkan.
 nav_brand, nav_menu, nav_refresh = st.columns([2.0, 5.4, 0.25])
 with nav_brand:
     st.markdown(
@@ -838,6 +938,8 @@ with nav_menu:
         key="page_navigation",
     )
 with nav_refresh:
+    # Tombol refresh menghapus cache data dan menjalankan ulang tampilan Streamlit.
+    #         # Tombol ini BUKAN tombol untuk melakukan training ulang model.
     if st.button("↻", help="Muat ulang data dan hasil evaluasi", key="refresh_app"):
         st.cache_data.clear()
         st.rerun()
@@ -851,8 +953,13 @@ st.markdown('<div class="top-rule"></div>', unsafe_allow_html=True)
 # =============================================================================
 # HALAMAN 1 - HARGA HARI INI (UNTUK MASYARAKAT UMUM)
 # =============================================================================
+# HALAMAN DASHBOARD: membantu pengguna umum memahami kondisi harga terakhir,
+# perubahan dari minggu sebelumnya, daftar harga, grafik, dan perkiraan singkat.
+# Istilah teknis dibuat lebih sederhana agar informasi mudah dibaca.
 if page == "Dashboard":
     # Halaman untuk masyarakat umum: bahasa sederhana, tulisan besar, tanpa istilah teknis.
+    # Nama hari/bulan dan ikon komoditas disiapkan untuk menampilkan
+    #     # tanggal serta kelompok pangan dalam format yang akrab bagi pengguna Indonesia.
     HARI_ID = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
     BULAN_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
     GROUP_EMOJI = {
@@ -861,18 +968,24 @@ if page == "Dashboard":
         "Minyak Goreng": "🛢️", "Gula Pasir": "🍬",
     }
 
+    # Mengubah harga menjadi format Rupiah dengan titik sebagai pemisah ribuan.
     def rp_id(value):
         return "Rp " + f"{float(value):,.0f}".replace(",", ".")
 
+    # Mengubah persentase menjadi teks dengan koma sebagai tanda desimal.
     def pct_id(value, digits=1):
         return f"{abs(float(value)):.{digits}f}".replace(".", ",") + "%"
 
+    # Mengubah tanggal menjadi teks berbahasa Indonesia, dengan atau tanpa nama hari.
     def date_id(ts, with_day=True):
         ts = pd.Timestamp(ts)
         core = f"{ts.day} {BULAN_ID[ts.month - 1]} {ts.year}"
         return f"{HARI_ID[ts.dayofweek]}, {core}" if with_day else core
 
     # --- hitung ringkasan tiap bahan pangan (dibanding 5 hari kerja sebelumnya = "minggu lalu") ---
+    # Untuk tiap jenis pangan, ambil harga terakhir dan bandingkan dengan harga
+    #     # lima observasi sebelumnya sebagai pendekatan "minggu lalu". Hitung juga
+    #     # rata-rata 22 observasi terakhir sebagai pembanding sekitar satu bulan kerja.
     stats = []
     for attr in [a for a in ATTR_TO_GROUP if a in df_data.columns]:
         s_attr = df_data[attr].dropna()
@@ -898,11 +1011,15 @@ if page == "Dashboard":
         f'<b>{date_id(last_data_date)}</b></div>',
         unsafe_allow_html=True,
     )
+    # Kalau data terakhir sudah lebih dari empat hari kalender, berikan peringatan.
+    #     # Ini mencegah pengguna mengira harga historis terakhir selalu sama dengan harga hari ini.
     if (pd.Timestamp.today().normalize() - last_data_date).days > 4:
         st.warning(
             f"Harga terbaru belum dimasukkan. Yang tampil adalah harga tanggal {date_id(last_data_date, False)}."
         )
 
+    # Menghitung jumlah jenis pangan yang naik, turun, dan relatif tetap.
+    #     # Angka-angka ini dipakai untuk kartu ringkasan di bagian atas Dashboard.
     n_up = sum(1 for s in stats if s["status"] == "up")
     n_down = sum(1 for s in stats if s["status"] == "down")
     n_flat = sum(1 for s in stats if s["status"] == "flat")
@@ -919,6 +1036,7 @@ if page == "Dashboard":
     )
 
     # --- yang paling berubah minggu ini ---
+    # Membuat isi kotak daftar perubahan harga terbesar beserta arah dan persentasenya.
     def mover_box(title, items, css):
         rows = "".join(
             f'<div class="mv-row"><span class="mv-name">{GROUP_EMOJI.get(i["group"], "")} {i["attr"]}</span>'
@@ -927,6 +1045,8 @@ if page == "Dashboard":
         ) or '<div class="mv-empty">Tidak ada</div>'
         return f'<div class="mv-box {css}"><div class="mv-title">{title}</div>{rows}</div>'
 
+    # Memilih tiga kenaikan dan tiga penurunan persentase terbesar dari data
+    #     # perbandingan minggu sebelumnya, lalu menampilkannya berdampingan.
     movers_up = sorted([s for s in stats if s["status"] == "up"], key=lambda s: -s["pct"])[:3]
     movers_down = sorted([s for s in stats if s["status"] == "down"], key=lambda s: s["pct"])[:3]
     mv1, mv2 = st.columns(2, gap="medium")
@@ -937,6 +1057,8 @@ if page == "Dashboard":
 
     # --- daftar harga ---
     st.markdown('<div class="home-section">Daftar Harga Bahan Pangan</div>', unsafe_allow_html=True)
+    # Membuat filter kelompok pangan dan kartu harga. Saat kelompok diganti,
+    #     # hanya kartu jenis barang dari kelompok tersebut yang ditampilkan.
     groups = list(dict.fromkeys(s["group"] for s in stats))
     chosen_group = st.radio(
         "Pilih kelompok bahan pangan", ["Semua"] + groups, horizontal=True,
@@ -963,6 +1085,8 @@ if page == "Dashboard":
 
     # --- perkembangan dan perkiraan satu bahan ---
     st.markdown('<div class="home-section">Lihat Perkembangan dan Perkiraan Harga</div>', unsafe_allow_html=True)
+    # Pengguna memilih satu jenis pangan untuk melihat harga terakhir,
+    #     # perbandingan dengan rata-rata sebulan, grafik, dan perkiraan ke depan.
     detail_attr = st.selectbox(
         "Pilih bahan pangan", [s["attr"] for s in stats], key="home_detail",
     )
@@ -986,6 +1110,8 @@ if page == "Dashboard":
 
     # Pilihan ini mengubah horizon yang terlihat pada GRAFIK (bukan hanya kartu informasi).
     st.markdown('<div class="home-subsection">Grafik Harga dan Prediksi</div>', unsafe_allow_html=True)
+    # Pilihan 1, 5, dan 22 hari kerja dipakai sebagai horizon yang DITAMPILKAN
+    #     # di grafik Dashboard. Ini tidak mengganti model yang digunakan.
     graph_period = st.radio(
         "Tampilkan prediksi pada grafik",
         options=[1, 5, 22],
@@ -994,6 +1120,8 @@ if page == "Dashboard":
         key="dashboard_graph_horizon",
     )
 
+    # Memuat model tersimpan untuk atribut yang dipilih. Selanjutnya website
+    #     # menghitung prediksi hingga 22 hari kerja agar pilihan grafik 1/5/22 hari tersedia.
     model_d, info_d, error_d = get_model_and_info(detail_attr)
     future_d = None
     if model_d is not None:
@@ -1010,6 +1138,9 @@ if page == "Dashboard":
     next_dates = pd.bdate_range(start=last_data_date + pd.Timedelta(days=1), periods=22)
 
     # Ukuran grafik dibuat lebih ringkas daripada versi sebelumnya.
+    # Grafik Dashboard sengaja menampilkan 90 observasi historis terakhir agar
+    #     # lebih ringkas. Garis biru adalah harga asli, sedangkan garis oranye putus-putus
+    #     # menunjukkan hasil prediksi dari model tersimpan.
     hist_d = series_d.tail(90)
     chart_spacer_l, chart_center, chart_spacer_r = st.columns([1, 3.4, 1])
     with chart_center:
@@ -1047,6 +1178,9 @@ if page == "Dashboard":
             st.warning(f"Grafik prediksi belum tersedia. {error_d or 'Model belum dapat dijalankan.'}")
 
     st.markdown('<div class="home-subsection">Perkiraan ke depan</div>', unsafe_allow_html=True)
+    # Menyusun tiga kartu perkiraan pada hari kerja berikutnya, lima hari kerja,
+    #     # dan 22 hari kerja. Kartu menampilkan estimasi harga, arah perubahan,
+    #     # serta rentang perubahan historis sebagai gambaran tambahan.
     fc_cards = ""
     for steps, label in ((1, "Hari berikutnya"), (5, "Seminggu lagi"), (22, "Sebulan lagi")):
         when = date_id(next_dates[steps - 1])
@@ -1084,6 +1218,9 @@ if page == "Dashboard":
 # =============================================================================
 # HALAMAN 2 - DATA DAN VISUALISASI HARGA
 # =============================================================================
+# HALAMAN PREDIKSI: pengguna memilih kelompok komoditas, jenis barang,
+# dan tanggal target. Website akan memakai riwayat harga serta model tersimpan
+# untuk menghitung hasil prediksi, kemudian menampilkan tabel dan grafik.
 elif page == "Prediksi":
     st.markdown('<div class="page-title">Prediksi Harga Pangan</div>', unsafe_allow_html=True)
 
@@ -1104,6 +1241,8 @@ elif page == "Prediksi":
                 key="data_group",
             )
 
+        # Pilihan jenis barang mengikuti kelompok yang dipilih dan hanya menampilkan
+        #         # atribut yang ada dalam dataset.
         attrs_in_group = [
             attr for attr, group in ATTR_TO_GROUP.items()
             if group == selected_group and attr in df_data.columns
@@ -1120,6 +1259,8 @@ elif page == "Prediksi":
             )
 
         # Ambil riwayat harga untuk atribut yang dipilih.
+        # Mengambil harga historis komoditas pilihan, membuang data kosong,
+        #         # dan memastikan urutan tanggal dari paling lama ke paling baru.
         series = df_data[selected_attr].dropna().sort_index()
         if series.empty:
             st.warning("Data historis untuk atribut ini belum tersedia.")
@@ -1128,12 +1269,16 @@ elif page == "Prediksi":
         last_date = pd.Timestamp(series.index[-1]).normalize()
 
         # Hari kerja pertama setelah tanggal data terakhir.
+        # Tanggal paling awal untuk prediksi adalah hari kerja pertama setelah
+        #         # tanggal data terakhir, bukan hari yang sudah ada di data historis.
         first_forecast_date = pd.bdate_range(
             start=last_date + pd.Timedelta(days=1),
             periods=1,
         )[0]
 
         # Batas maksimal pemilihan tanggal: 250 hari kerja ke depan.
+        # Tanggal paling jauh dibatasi sampai 250 hari kerja setelah data terakhir.
+        #         # Batas ini dipakai untuk kalender dan validasi jumlah langkah prediksi.
         max_forecast_date = pd.bdate_range(
             start=last_date + pd.Timedelta(days=1),
             periods=MAX_STEPS,
@@ -1141,9 +1286,14 @@ elif page == "Prediksi":
 
         min_date = first_forecast_date.date()
         max_date = max_forecast_date.date()
+        # Kunci session_state dibedakan menurut jenis barang dan tanggal data terakhir,
+        #         # supaya pilihan tanggal serta bulan kalender tidak tertukar antar-komoditas.
         date_key = f"forecast_target_date_{selected_attr}_{last_date:%Y%m%d}"
         view_key = f"calendar_visible_month_{selected_attr}_{last_date:%Y%m%d}"
 
+        # Menetapkan tanggal awal saat pengguna belum pernah memilih target.
+        #         # Saat dataset berubah, pilihan yang sudah di luar batas juga akan dikembalikan
+        #         # ke tanggal paling awal yang masih diperbolehkan.
         if date_key not in st.session_state:
             st.session_state[date_key] = min_date
         if view_key not in st.session_state:
@@ -1174,6 +1324,9 @@ elif page == "Prediksi":
             )
             # st.popover menggantikan st.date_input: tidak akan muncul popup
             # tanggal bawaan yang tak bisa ditambahi tombol khusus.
+            # Kalender dibuat di dalam popover agar pengguna dapat pindah bulan/tahun
+            #             # dan memilih tanggal langsung lewat tombol angka. Memilih tanggal
+            #             # akan memicu Streamlit menghitung ulang halaman secara otomatis.
             with st.popover(
                 f"📅 {selected_date:%d/%m/%Y}",
                 use_container_width=True,
@@ -1221,6 +1374,8 @@ elif page == "Prediksi":
                 for i, label in enumerate(["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]):
                     weekday_cols[i].caption(label)
 
+                # Membentuk baris kalender per minggu. Tanggal di luar rentang dinonaktifkan,
+                #                 # sedangkan angka yang ditekan disimpan sebagai tanggal target.
                 weeks = calendar.monthcalendar(visible_month.year, visible_month.month)
                 for week_idx, week in enumerate(weeks):
                     days = st.columns(7, gap="small")
@@ -1250,6 +1405,9 @@ elif page == "Prediksi":
 
     # Model menggunakan kalender hari kerja Senin-Jumat.
     # Jika tanggal pilihan jatuh pada akhir pekan, gunakan hari kerja berikutnya.
+    # Model memprediksi berdasarkan hari kerja Senin–Jumat. Jika target jatuh
+    #     # pada Sabtu/Minggu, tanggal efektif digeser ke hari kerja berikutnya.
+    #     # Kalender ini belum memperhitungkan tanggal libur nasional.
     effective_target_date = pd.bdate_range(
         start=requested_date,
         periods=1,
@@ -1257,6 +1415,8 @@ elif page == "Prediksi":
 
     # Buat seluruh tanggal prediksi dari hari setelah data terakhir
     # sampai tanggal efektif yang dipilih pengguna.
+    # Menghitung semua tanggal kerja dari setelah data terakhir sampai target efektif.
+    #     # Banyaknya tanggal inilah yang menjadi jumlah langkah prediksi rekursif.
     forecast_dates = pd.bdate_range(
         start=last_date + pd.Timedelta(days=1),
         end=effective_target_date,
@@ -1264,6 +1424,8 @@ elif page == "Prediksi":
     )
     steps_ahead = len(forecast_dates)
 
+    # Menolak tanggal yang tidak berada setelah data terakhir atau melebihi
+    #     # batas maksimum langkah. Website berhenti dengan pesan yang jelas.
     if steps_ahead < 1:
         st.error("Pilih tanggal setelah tanggal data terakhir.")
         st.stop()
@@ -1290,6 +1452,9 @@ elif page == "Prediksi":
             f"({steps_ahead} hari kerja dari data terakhir)."
         )
 
+    # Mengambil model tersimpan untuk jenis barang terpilih. Jika berhasil,
+    #     # predict_future_recursive membuat prediksi berurutan sampai target.
+    #     # Kode ini tidak memanggil proses fit atau training model di halaman.
     model_obj, model_info, model_error = get_model_and_info(selected_attr)
     future_series = None
     prediction_error = None
@@ -1309,6 +1474,8 @@ elif page == "Prediksi":
         prediction_error = model_error
 
     # Rentang harga wajar (sebaran historis perubahan harga), bukan ramalan titik
+    # Rentang tambahan dihitung dari sebaran perubahan harga historis,
+    #     # bukan jaminan atau interval kepastian prediksi dari model.
     price_band = None
     if future_series is not None and len(future_series):
         try:
@@ -1326,6 +1493,8 @@ elif page == "Prediksi":
     # BARIS 1: DATA HARGA (KIRI) + RINGKASAN PREDIKSI (KANAN)
     # BARIS 2: GRAFIK HARGA ASLI (KIRI) + GRAFIK PREDIKSI (KANAN)
     # ===============================================================
+    # Membandingkan estimasi harga target dengan harga historis terakhir,
+    #     # lalu menyiapkan selisih/persentase dan warna untuk ringkasan hasil.
     last_price = float(series.iloc[-1])
     has_prediction = future_series is not None and len(future_series) > 0
     if has_prediction:
@@ -1341,6 +1510,8 @@ elif page == "Prediksi":
         movement_text = "Belum tersedia"
         price_text = "Belum tersedia"
 
+    # Membuat tabel lima observasi harga terakhir supaya pengguna memiliki
+    #     # pembanding nyata sebelum melihat nilai prediksi.
     recent = series.tail(5)
     recent_table = pd.DataFrame({
         "Tanggal": recent.index.strftime("%d/%m/%Y"),
@@ -1348,6 +1519,8 @@ elif page == "Prediksi":
         "Harga (Rp)": recent.values,
     })
 
+    # Baris pertama halaman Prediksi menempatkan tabel harga terbaru di kiri
+    #     # dan ringkasan tanggal, perubahan, serta harga prediksi di kanan.
     top_left, top_right = st.columns([1, 1], gap="large")
     with top_left:
         panel_heading("▤", "Data Harga Terbaru", f"Harga {selected_attr.lower()} beberapa hari terakhir")
@@ -1387,8 +1560,13 @@ elif page == "Prediksi":
             st.warning(f"Model prediksi belum tersedia. {prediction_error or ''}")
 
     chart_left, chart_right = st.columns([1, 1], gap="large")
+    # Untuk grafik prediksi digunakan jendela historis 180 observasi, sedangkan
+    #     # grafik Harga Asli di sebelah kiri tetap menampilkan SELURUH data historis.
+    #     # Pemisahan ini membuat proyeksi lebih mudah dilihat tanpa memotong grafik asli.
     history_chart = series.tail(HISTORY_WINDOW)  # Riwayat singkat untuk grafik prediksi
     full_history_chart = series  # Seluruh data yang tersedia, tanpa batas 180 baris
+    # Grafik kiri menggambar seluruh harga asli dari awal sampai akhir dataset,
+    #     # tanpa menyisipkan nilai hasil prediksi.
     with chart_left:
         panel_heading("⌁", "Grafik Harga Asli", f"Seluruh riwayat dataset: {full_history_chart.index.min():%d/%m/%Y}–{full_history_chart.index.max():%d/%m/%Y} ({len(full_history_chart):,} data)")
         fig_real, ax_real = plt.subplots(figsize=(7, 3.2))
@@ -1403,6 +1581,9 @@ elif page == "Prediksi":
         st.pyplot(fig_real, use_container_width=True)
         plt.close(fig_real)
 
+    # Grafik kanan menggabungkan harga historis terakhir dengan garis hasil prediksi.
+    #     # Jika tersedia, area bayangan memperlihatkan rentang berdasarkan data historis.
+    #     # Garis vertikal menandai batas antara data terakhir dan periode prediksi.
     with chart_right:
         panel_heading("⌁", "Grafik PREDIKSI Perubahan Harga", "Memudahkan melihat tren harga")
         fig_pred, ax_pred = plt.subplots(figsize=(7, 3.2))
@@ -1442,9 +1623,16 @@ elif page == "Prediksi":
 # HALAMAN 3 - EVALUASI MODEL
 # =============================================================================
 
+# HALAMAN EVALUASI MODEL: menyajikan nilai MAE, RMSE, dan R² untuk model
+# yang dipilih pada setiap atribut, prediksi hari kerja berikutnya untuk semua atribut,
+# serta ringkasan performa model. Nilai evaluasi berasal dari CSV hasil pengujian,
+# bukan dihitung dengan melatih ulang model di halaman ini.
 elif page == "Evaluasi Model":
     st.markdown('<div class="page-title">Evaluasi Model</div>', unsafe_allow_html=True)
 
+    # Mengambil satu model pilihan untuk setiap atribut. Baris yang tidak bisa
+    #     # dipetakan ke kelompok komoditas disembunyikan dari tabel tampilan saja;
+    #     # data evaluasi sumber tetap tidak diubah.
     chosen = get_chosen_results(df_eval_results)
     # Hanya tampilkan jenis komoditas yang memiliki kelompok terpetakan.
     # Data evaluasi aslinya tetap utuh; baris kategori "Lainnya" hanya disembunyikan.
@@ -1453,11 +1641,16 @@ elif page == "Evaluasi Model":
 
     # Pertahankan dua panel berdampingan; gunakan tabel HTML responsif
     # agar kolom R² tetap terlihat tanpa scroll horizontal.
+    # Tata letak dibuat dua panel: tabel metrik evaluasi di sebelah kiri
+    #     # dan tabel perkiraan satu hari kerja ke depan di sebelah kanan.
     table_col, chart_col = st.columns([1.15, 1], gap="medium")
 
     with table_col:
         with st.container(border=True):
             panel_heading("▤", "Fitur Evaluasi Model", "Setiap baris menunjukkan hasil evaluasi untuk satu jenis komoditas")
+            # Menyusun kolom tabel evaluasi dan mengganti judul agar mudah dibaca.
+            #             # Tabel dibuat sebagai HTML responsif supaya kolom R² tetap terlihat
+            #             # meskipun panel kiri tidak terlalu lebar.
             show_cols = ["Kelompok", "Atribut", "Model", "MAE", "RMSE", "R2"]
             table_eval = chosen[[col for col in show_cols if col in chosen.columns]].copy()
             table_eval = table_eval.rename(columns={
@@ -1507,6 +1700,8 @@ elif page == "Evaluasi Model":
                 </style>
             """, unsafe_allow_html=True)
 
+            # Setiap baris hasil evaluasi diubah menjadi baris HTML. escape() digunakan
+            #             # supaya teks dari file dibaca sebagai teks, bukan sebagai tag HTML.
             table_rows = []
             for _, result in table_eval.iterrows():
                 def metric_money(key):
@@ -1545,6 +1740,9 @@ elif page == "Evaluasi Model":
                 "Estimasi harga seluruh jenis komoditas pada hari kerja berikutnya"
             )
 
+            # Memanggil prediksi satu hari kerja ke depan untuk setiap jenis komoditas.
+            #             # Hasil berhasil ditampilkan dalam tabel, sementara kendala disimpan
+            #             # untuk diperlihatkan melalui pesan dan bagian Detail Kendala.
             predictions, prediction_errors, next_date = (
                 get_all_next_day_predictions(
                     DATA_MTIME,
@@ -1573,6 +1771,8 @@ elif page == "Evaluasi Model":
                     "Prediksi Besok"
                 ]
 
+                # Tabel ini menampilkan harga historis terakhir dan estimasi harga berikutnya.
+                #                 # Nilai diformat ke Rupiah untuk tampilan tanpa mengganti data aslinya.
                 st.dataframe(
                     tabel[kolom_tampil].rename(
                         columns={"Prediksi Besok": "Harga Prediksi"}
@@ -1612,7 +1812,13 @@ elif page == "Evaluasi Model":
 
 
     # Ringkasan berdasarkan model yang dipilih untuk setiap atribut.
+    # Bagian paling bawah merangkum model yang paling sering terpilih berdasarkan
+    #     # hasil evaluasi tiap atribut, beserta rata-rata MAE, RMSE, dan R² miliknya.
+    #     # Ini bukan klaim bahwa satu model pasti terbaik untuk SEMUA jenis pangan.
     chosen, best_model_row = get_best_model_summary(df_eval_results)
+    # Memisahkan atribut yang memilih XGBoost untuk menghitung rata-rata
+    #     # metrik XGBoost secara khusus. Jika tidak ada, bagian ini disembunyikan
+    #     # daripada menampilkan angka buatan.
     xgb_chosen = chosen[
         chosen["Model"].astype(str).str.strip().str.lower() == "xgboost"
     ]
@@ -1643,6 +1849,8 @@ elif page == "Evaluasi Model":
     else:
         xgb_section = ""  # Tidak mengarang nilai jika tidak ada atribut terpilih XGBoost.
 
+    # Menampilkan ringkasan model pilihan dalam panel besar, lalu tambahan
+    #     # metrik XGBoost dalam ukuran lebih kecil jika datanya tersedia.
     st.write("")
     st.markdown(
         f"""
