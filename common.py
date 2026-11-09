@@ -193,7 +193,7 @@ def build_features(df_series, window_size):
     # window_size menyatakan jumlah pengamatan historis yang dilihat model.
     # Nilai ini perlu konsisten antara training dan saat membuat prediksi.
     w = window_size
-    s = df_series.astype(float)
+    s = df_series.astype(float) #mengubah harga menjadi angka desimal
     # Hitung persentase perubahan harga terhadap pengamatan sebelumnya.
     # Contoh: dari 10.000 ke 10.500 menghasilkan 0,05 atau kenaikan 5%.
     ret = s.pct_change()

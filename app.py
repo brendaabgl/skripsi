@@ -449,7 +449,14 @@ st.markdown(
     .panel-heading { font-size: 1.05rem; }
     .panel-icon { width: 30px; height: 30px; min-width: 30px; font-size: 1rem; }
     .panel-caption { margin-left: 40px; }
-    .forecast-summary { padding-top: 14px; }
+    /* Tiga informasi ringkas berjajar satu garis, TANPA kartu terpisah. */
+    .forecast-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding-top:18px; align-items:start; }
+    .forecast-inline { min-width:0; padding:0 6px; }
+    .forecast-inline + .forecast-inline { border-left:1px solid #dce5ed; padding-left:12px; }
+    .forecast-inline .forecast-value { font-size:clamp(.9rem,1.1vw,1.17rem); line-height:1.25; overflow-wrap:break-word; }
+    .forecast-inline .forecast-label { font-size:.73rem; }
+    .forecast-inline .forecast-foot { font-size:.68rem; margin-top:5px; }
+    @media(max-width:760px){.forecast-summary{grid-template-columns:1fr; gap:12px}.forecast-inline+.forecast-inline{border-left:0;padding-left:6px}}
     .forecast-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 4px 7px; min-height: 85px; }
     .forecast-symbol { background: #e5eef5; border-radius: 50%; width: 30px; height: 30px;
         min-width: 30px; display: inline-flex; align-items: center; justify-content: center;
@@ -686,7 +693,10 @@ def get_chosen_results(results):
     if chosen.empty:
         sort_col = "CV MAE" if "CV MAE" in results.columns else "MAE"
         chosen = results.sort_values(sort_col).groupby("Atribut", as_index=False).head(1).copy()
-    return chosen
+    # Pastikan hanya ada satu model terpilih untuk setiap atribut, sekalipun
+    # data sumber tidak sengaja memberi lebih dari satu tanda Dipilih=True.
+    sort_col = "CV MAE" if "CV MAE" in chosen.columns else "MAE"
+    return chosen.sort_values(sort_col).drop_duplicates(subset=["Atribut"], keep="first").copy()
 
 
 # Merangkum model-model yang terpilih: jumlah atribut yang memilih setiap model
@@ -1040,7 +1050,10 @@ if page == "Dashboard":
     def mover_box(title, items, css):
         rows = "".join(
             f'<div class="mv-row"><span class="mv-name">{GROUP_EMOJI.get(i["group"], "")} {i["attr"]}</span>'
-            f'<span class="mv-val">{"▲" if i["status"] == "up" else "▼"} {pct_id(i["pct"])}</span></div>'
+            f'<span class="mv-val">{"▲" if i["status"] == "up" else "▼"} {pct_id(i["pct"])}'
+            + (f' <span style="font-size:0.79rem;font-weight:600;white-space:nowrap;">'
+               f'({"+" if i["status"] == "up" else "−"}{rp_id(abs(i["diff"]))})</span>')
+            + '</span></div>'
             for i in items
         ) or '<div class="mv-empty">Tidak ada</div>'
         return f'<div class="mv-box {css}"><div class="mv-title">{title}</div>{rows}</div>'
@@ -1530,34 +1543,68 @@ elif page == "Prediksi":
         )
 
     with top_right:
-        st.markdown('<div class="forecast-summary">', unsafe_allow_html=True)
-        metric_left, metric_right = st.columns(2, gap="small")
-        with metric_left:
-            st.markdown(
-                '<div class="forecast-item"><span class="forecast-symbol">▣</span>'
-                '<div><div class="forecast-label">Tanggal Prediksi</div>'
-                f'<div class="forecast-value">{steps_ahead} Hari Kerja ke Depan</div>'
-                f'<div class="forecast-foot">Target: {effective_date_text}</div></div></div>',
-                unsafe_allow_html=True,
-            )
-        with metric_right:
-            st.markdown(
-                '<div class="forecast-item"><span class="forecast-symbol">▥</span>'
-                '<div><div class="forecast-label">Perkiraan Kenaikan</div>'
-                f'<div class="forecast-value" style="color:{movement_color}">{movement_text}</div>'
-                '<div class="forecast-foot">Dibanding harga terakhir</div></div></div>',
-                unsafe_allow_html=True,
-            )
+        # Ringkasan berada pada SATU BARIS horizontal, tanpa tiga kartu.
+        # Nilai tanggal, perubahan, dan perkiraan tetap berasal dari prediksi terpilih.
         st.markdown(
-            '<div class="forecast-item forecast-price"><span class="forecast-symbol">▤</span>'
-            '<div><div class="forecast-label">Perkiraan Harga</div>'
+            '<div class="forecast-summary">'
+            '<div class="forecast-inline"><div class="forecast-label">Tanggal Prediksi</div>'
+            f'<div class="forecast-value">{steps_ahead} Hari Kerja ke Depan</div>'
+            f'<div class="forecast-foot">Target: {effective_date_text}</div></div>'
+            '<div class="forecast-inline"><div class="forecast-label">Perkiraan Kenaikan</div>'
+            f'<div class="forecast-value" style="color:{movement_color}">{movement_text}</div>'
+            '<div class="forecast-foot">Dibanding harga terakhir</div></div>'
+            '<div class="forecast-inline"><div class="forecast-label">Perkiraan Harga</div>'
             f'<div class="forecast-value">{price_text}</div>'
-            '<div class="forecast-foot">Estimasi harga pada tanggal pilihan</div></div></div>',
+            '<div class="forecast-foot">Estimasi harga pada tanggal pilihan</div></div>'
+            '</div>',
             unsafe_allow_html=True,
         )
-        st.markdown('</div>', unsafe_allow_html=True)
         if not has_prediction:
             st.warning(f"Model prediksi belum tersedia. {prediction_error or ''}")
+
+        # Grafik gabungan mini ditempatkan di ruang kosong tepat di bawah tiga
+        # ringkasan prediksi (kolom kanan, berdampingan dengan tabel harga terbaru).
+        st.markdown(
+            '<div style="font-size:.87rem;font-weight:800;color:#14213d;'
+            'margin:12px 0 0;">Grafik Gabungan Harga Asli dan Prediksi</div>',
+            unsafe_allow_html=True,
+        )
+        fig_both, ax_both = plt.subplots(figsize=(7.0, 2.25), dpi=110)
+        if has_prediction:
+            # Garis oranye menggabungkan riwayat yang sama dengan garis biru,
+            # dilanjutkan prediksi dari model. Masa lalu BUKAN hasil prediksi model.
+            combined_forecast = pd.concat([series, future_series]).sort_index()
+            combined_forecast = combined_forecast[~combined_forecast.index.duplicated(keep="last")]
+            ax_both.plot(
+                combined_forecast.index, combined_forecast.values,
+                color="#f28c28", linewidth=2.0, label="Riwayat + prediksi", zorder=2,
+            )
+        ax_both.plot(
+            series.index, series.values, color="#256bd8", linewidth=1.55,
+            label="Harga asli", zorder=3,
+        )
+        if has_prediction:
+            ax_both.plot(
+                [series.index[-1], *future_series.index],
+                [last_price, *future_series.values],
+                color="#f28c28", linewidth=2.4, zorder=4,
+            )
+            ax_both.axvline(series.index[-1], color="#94a3b8", linestyle=":", linewidth=.8)
+            tight_ylim(ax_both, series.values, future_series.values)
+        else:
+            tight_ylim(ax_both, series.values)
+        ax_both.tick_params(axis="both", labelsize=7)
+        ax_both.grid(True, alpha=.20, linestyle="--")
+        ax_both.legend(loc="upper left", fontsize=6.5, ncol=2, frameon=False)
+        format_rp_axis(ax_both)
+        fig_both.subplots_adjust(left=.10, right=.99, top=.96, bottom=.20)
+        st.pyplot(fig_both, use_container_width=True)
+        plt.close(fig_both)
+        st.markdown(
+            '<div style="font-size:.67rem;color:#64748b;margin-top:-10px">'
+            'Sebelum akhir data, garis oranye mengikuti harga aktual; sesudahnya menunjukkan estimasi model.'
+            '</div>', unsafe_allow_html=True,
+        )
 
     chart_left, chart_right = st.columns([1, 1], gap="large")
     # Untuk grafik prediksi digunakan jendela historis 180 observasi, sedangkan
@@ -1613,6 +1660,7 @@ elif page == "Prediksi":
         st.pyplot(fig_pred, use_container_width=True)
         plt.close(fig_pred)
 
+
     if has_prediction:
         st.caption(
             "Prediksi adalah estimasi, bukan harga pasti; kalender hanya memperhitungkan Senin–Jumat."
@@ -1630,12 +1678,16 @@ elif page == "Prediksi":
 elif page == "Evaluasi Model":
     st.markdown('<div class="page-title">Evaluasi Model</div>', unsafe_allow_html=True)
 
-    # Mengambil satu model pilihan untuk setiap atribut. Baris yang tidak bisa
-    #     # dipetakan ke kelompok komoditas disembunyikan dari tabel tampilan saja;
-    #     # data evaluasi sumber tetap tidak diubah.
-    chosen = get_chosen_results(df_eval_results)
-    # Hanya tampilkan jenis komoditas yang memiliki kelompok terpetakan.
-    # Data evaluasi aslinya tetap utuh; baris kategori "Lainnya" hanya disembunyikan.
+    # Tentukan algoritma yang paling banyak dipilih berdasarkan CV MAE
+    # pada masing-masing atribut. Tabel kiri hanya menampilkan atribut
+    # yang model terpilihnya menggunakan algoritma pemenang tersebut.
+    semua_terpilih, best_model_row = get_best_model_summary(df_eval_results)
+    nama_model_terbaik = best_model_row["Model"]
+    chosen = semua_terpilih[
+        semua_terpilih["Model"] == nama_model_terbaik
+    ].copy()
+
+    # Hanya tampilkan jenis komoditas yang kelompoknya dikenali.
     chosen["Kelompok"] = chosen["Atribut"].map(ATTR_TO_GROUP)
     chosen = chosen[chosen["Kelompok"].notna()].copy()
 
@@ -1647,7 +1699,7 @@ elif page == "Evaluasi Model":
 
     with table_col:
         with st.container(border=True):
-            panel_heading("▤", "Fitur Evaluasi Model", "Setiap baris menunjukkan hasil evaluasi untuk satu jenis komoditas")
+            panel_heading("▤", "Fitur Evaluasi Model", f"Hanya atribut dengan model terbaik {nama_model_terbaik} ({len(chosen)} komoditas)")
             # Menyusun kolom tabel evaluasi dan mengganti judul agar mudah dibaca.
             #             # Tabel dibuat sebagai HTML responsif supaya kolom R² tetap terlihat
             #             # meskipun panel kiri tidak terlalu lebar.
@@ -1815,42 +1867,8 @@ elif page == "Evaluasi Model":
     # Bagian paling bawah merangkum model yang paling sering terpilih berdasarkan
     #     # hasil evaluasi tiap atribut, beserta rata-rata MAE, RMSE, dan R² miliknya.
     #     # Ini bukan klaim bahwa satu model pasti terbaik untuk SEMUA jenis pangan.
-    chosen, best_model_row = get_best_model_summary(df_eval_results)
-    # Memisahkan atribut yang memilih XGBoost untuk menghitung rata-rata
-    #     # metrik XGBoost secara khusus. Jika tidak ada, bagian ini disembunyikan
-    #     # daripada menampilkan angka buatan.
-    xgb_chosen = chosen[
-        chosen["Model"].astype(str).str.strip().str.lower() == "xgboost"
-    ]
-    if not xgb_chosen.empty:
-        xgb_mae = fmt_rp(xgb_chosen["MAE"].mean())
-        xgb_rmse = fmt_rp(xgb_chosen["RMSE"].mean())
-        xgb_r2 = fmt_r2(xgb_chosen["R2"].mean())
-        xgb_count = xgb_chosen["Atribut"].nunique()
-        xgb_section = f"""
-            <div style="border-top:1px solid #cbd9e5;margin-top:12px;padding-top:10px;
-                        display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;gap:12px;align-items:center;">
-                <div>
-                    <div style="font-size:.90rem;font-weight:800;color:#26364d;">XGBoost</div>
-                    <div style="font-size:.70rem;color:#607189;">
-                        Rata-rata pengujian pada {xgb_count} atribut yang memilih XGBoost
-                    </div>
-                </div>
-                <div style="text-align:center;font-size:.78rem;color:#475569;">MAE<br>
-                    <b style="color:#14213d;font-size:.90rem;">{xgb_mae}</b></div>
-                <div style="text-align:center;font-size:.78rem;color:#475569;">RMSE<br>
-                    <b style="color:#14213d;font-size:.90rem;">{xgb_rmse}</b></div>
-                <div style="text-align:center;font-size:.78rem;color:#475569;">R² Score<br>
-                    <b style="color:#14213d;font-size:.90rem;">{xgb_r2}</b></div>
-            </div>
-        """
-        # Hilangkan indentasi dan newline agar HTML tidak dibaca sebagai blok kode Markdown.
-        xgb_section = "".join(line.strip() for line in xgb_section.splitlines())
-    else:
-        xgb_section = ""  # Tidak mengarang nilai jika tidak ada atribut terpilih XGBoost.
-
-    # Menampilkan ringkasan model pilihan dalam panel besar, lalu tambahan
-    #     # metrik XGBoost dalam ukuran lebih kecil jika datanya tersedia.
+    # Menampilkan hanya satu ringkasan model yang paling sering terpilih.
+    # Tabel kiri hanya memuat atribut yang memilih algoritma pemenang.
     st.write("")
     st.markdown(
         f"""
@@ -1866,7 +1884,7 @@ elif page == "Evaluasi Model":
                 <div class="mini-metric"><div class="mini-label">MAE</div><div class="mini-value">{fmt_rp(best_model_row['MAE'])}</div></div>
                 <div class="mini-metric"><div class="mini-label">RMSE</div><div class="mini-value">{fmt_rp(best_model_row['RMSE'])}</div></div>
                 <div class="mini-metric"><div class="mini-label">R² Score</div><div class="mini-value">{fmt_r2(best_model_row['R2'])}</div></div>
-            </div>{xgb_section}</div>
+            </div></div>
         """,
         unsafe_allow_html=True,
     )
