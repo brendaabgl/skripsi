@@ -110,8 +110,6 @@ def evaluate(y_true, y_pred):
     return {
         "MAE": float(mean_absolute_error(y_true, y_pred)),
         "RMSE": float(np.sqrt(mean_squared_error(y_true, y_pred))),
-        "MAE (%)": float(np.mean(np.abs((np.asarray(y_true, dtype=float) - np.asarray(y_pred, dtype=float)) / np.where(np.abs(y_true) > 1e-12, np.abs(y_true), np.nan))) * 100),
-        "RMSE (%)": float(np.sqrt(np.nanmean(np.square((np.asarray(y_true, dtype=float) - np.asarray(y_pred, dtype=float)) / np.where(np.abs(y_true) > 1e-12, np.abs(y_true), np.nan)))) * 100),
         "R2": safe_r2(y_true, y_pred),
     }
 
@@ -252,8 +250,6 @@ def evaluate_horizons(model, series, window_size, first_test_date):
         a, f = (np.array(x, dtype=float) for x in zip(*rows))
         out[h] = {
             "N": len(a), "MAE": float(np.mean(np.abs(a - f))), "RMSE": float(np.sqrt(np.mean((a - f) ** 2))),
-            "MAE (%)": float(np.nanmean(np.abs((a - f) / np.where(np.abs(a) > 1e-12, np.abs(a), np.nan))) * 100),
-            "RMSE (%)": float(np.sqrt(np.nanmean(np.square((a - f) / np.where(np.abs(a) > 1e-12, np.abs(a), np.nan)))) * 100),
         }
     return out
 
