@@ -583,6 +583,61 @@ df_test_pred = load_test_predictions(get_file_mtime("test_predictions.csv"))
 df_horizon = load_horizon_results(get_file_mtime("eval_horizon.csv"))
 validation_report = load_validation_report(get_file_mtime("validation_report.json"))
 
+# Metrik persen dihitung dari pasangan data uji, BUKAN sekadar mengganti label Rupiah.
+# MAE relatif = rata-rata |aktual - prediksi| / |aktual| * 100.
+# RMSE relatif = akar(rata-rata(((aktual - prediksi) / aktual)^2)) * 100.
+# Nilai asli MAE/RMSE dalam rupiah tetap dipertahankan di CSV dan metadata.
+def calculate_relative_metrics(test_predictions):
+    if test_predictions is None:
+        return pd.DataFrame(columns=["Atribut", "Model", "MAE (%)", "RMSE (%)"])
+    required = {"Atribut", "Model", "Aktual", "Prediksi"}
+    if not required.issubset(test_predictions.columns):
+        return pd.DataFrame(columns=["Atribut", "Model", "MAE (%)", "RMSE (%)"])
+    df = test_predictions[["Atribut", "Model", "Aktual", "Prediksi"]].copy()
+    df["Aktual"] = pd.to_numeric(df["Aktual"], errors="coerce")
+    df["Prediksi"] = pd.to_numeric(df["Prediksi"], errors="coerce")
+    df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=["Aktual", "Prediksi"])
+    df = df[df["Aktual"].abs() > 1e-12].copy()  # harga nol tidak dapat dinormalisasi
+    if df.empty:
+        return pd.DataFrame(columns=["Atribut", "Model", "MAE (%)", "RMSE (%)"])
+    df["galat_rel"] = (df["Aktual"] - df["Prediksi"]) / df["Aktual"].abs()
+    output = (df.groupby(["Atribut", "Model"], as_index=False)
+              .agg(**{"MAE (%)": ("galat_rel", lambda x: float(np.mean(np.abs(x))) * 100),
+                       "RMSE (%)": ("galat_rel", lambda x: float(np.sqrt(np.mean(np.square(x)))) * 100)}))
+    return output
+
+# Hanya model terpilih yang tersedia di test_predictions.csv. Jangan membuat
+# metrik persen palsu untuk kandidat lain dari MAE rupiah.
+if df_eval_results is not None:
+    relative_metrics = calculate_relative_metrics(df_test_pred)
+    # eval_results.csv mungkin sudah mempunyai kolom MAE (%) dan RMSE (%).
+    # Merge langsung membuat nama _x dan _y; akibatnya fungsi ringkasan gagal.
+    # Gunakan suffix sementara lalu gabungkan hasil baru dengan hasil CSV lama.
+    percent_cols = ["MAE (%)", "RMSE (%)"]
+    df_eval_results = df_eval_results.merge(
+        relative_metrics,
+        on=["Atribut", "Model"],
+        how="left",
+        suffixes=("", "_hitung"),
+        validate="many_to_one",
+    )
+    for col in percent_cols:
+        calculated_col = f"{col}_hitung"
+        if calculated_col in df_eval_results.columns:
+            if col in df_eval_results.columns:
+                # Prioritaskan nilai dari harga aktual/prediksi saat tersedia.
+                df_eval_results[col] = pd.to_numeric(
+                    df_eval_results[calculated_col], errors="coerce"
+                ).combine_first(pd.to_numeric(df_eval_results[col], errors="coerce"))
+            else:
+                df_eval_results[col] = pd.to_numeric(
+                    df_eval_results[calculated_col], errors="coerce"
+                )
+            df_eval_results = df_eval_results.drop(columns=[calculated_col])
+        elif col not in df_eval_results.columns:
+            df_eval_results[col] = np.nan
+
+
 # Validasi awal: halaman dihentikan jika file evaluasi tidak ada. Ini penting karena
 # tabel evaluasi dan pemilihan model membutuhkan data hasil evaluasi tersebut.
 if df_eval_results is None:
@@ -626,13 +681,19 @@ def fmt_rp(value, decimals=0):
     return f"Rp {float(value):,.{decimals}f}"
 
 
+def fmt_pct_metric(value):
+    if pd.isna(value):
+        return NA_LABEL
+    return f"{float(value):.2f}%"
+
+
 # Mengatur tampilan nilai MAE, RMSE, dan R² pada tabel evaluasi.
-# MAE dan RMSE ditampilkan dalam format Rupiah, sedangkan R² berupa nilai desimal.
+# Metrik persen ditampilkan dengan simbol %, sedangkan R² berupa nilai desimal.
 def style_eval(frame):
     formats = {}
-    for col in ["MAE", "RMSE"]:
+    for col in ["MAE (%)", "RMSE (%)"]:
         if col in frame.columns:
-            formats[col] = "Rp {:,.2f}"
+            formats[col] = "{:.2f}%"
     if "R2" in frame.columns:
         formats["R2"] = "{:.4f}"
     return frame.style.format(formats, na_rep=NA_LABEL)
@@ -710,8 +771,8 @@ def get_best_model_summary(results):
             .agg(
                 Jumlah=("Atribut", "nunique"),
                 CV_MAE=("CV MAE", "mean"),
-                MAE=("MAE", "mean"),
-                RMSE=("RMSE", "mean"),
+                MAE=("MAE (%)", "mean"),
+                RMSE=("RMSE (%)", "mean"),
                 R2=("R2", "mean"),
             )
             .reset_index()
@@ -722,8 +783,8 @@ def get_best_model_summary(results):
             chosen.groupby("Model")
             .agg(
                 Jumlah=("Atribut", "nunique"),
-                MAE=("MAE", "mean"),
-                RMSE=("RMSE", "mean"),
+                MAE=("MAE (%)", "mean"),
+                RMSE=("RMSE (%)", "mean"),
                 R2=("R2", "mean"),
             )
             .reset_index()
@@ -1703,7 +1764,7 @@ elif page == "Evaluasi Model":
             # Menyusun kolom tabel evaluasi dan mengganti judul agar mudah dibaca.
             #             # Tabel dibuat sebagai HTML responsif supaya kolom R² tetap terlihat
             #             # meskipun panel kiri tidak terlalu lebar.
-            show_cols = ["Kelompok", "Atribut", "Model", "MAE", "RMSE", "R2"]
+            show_cols = ["Kelompok", "Atribut", "Model", "MAE (%)", "RMSE (%)", "R2"]
             table_eval = chosen[[col for col in show_cols if col in chosen.columns]].copy()
             table_eval = table_eval.rename(columns={
                 "Kelompok": "Kelompok Komoditas",
@@ -1756,9 +1817,9 @@ elif page == "Evaluasi Model":
             #             # supaya teks dari file dibaca sebagai teks, bukan sebagai tag HTML.
             table_rows = []
             for _, result in table_eval.iterrows():
-                def metric_money(key):
+                def metric_percent(key):
                     value = result[key]
-                    return (f"Rp {float(value):,.2f}" if pd.notna(value) else NA_LABEL)
+                    return (f"{float(value):.2f}%" if pd.notna(value) else NA_LABEL)
 
                 r2 = (f"{float(result['R² Score']):.4f}"
                       if pd.notna(result['R² Score']) else NA_LABEL)
@@ -1767,8 +1828,8 @@ elif page == "Evaluasi Model":
                     f"<td>{escape(str(result['Kelompok Komoditas']))}</td>"
                     f"<td>{escape(str(result['Jenis Komoditas']))}</td>"
                     f"<td>{escape(str(result['Model']))}</td>"
-                    f"<td class='metric'>{escape(metric_money('MAE'))}</td>"
-                    f"<td class='metric'>{escape(metric_money('RMSE'))}</td>"
+                    f"<td class='metric'>{escape(metric_percent('MAE (%)'))}</td>"
+                    f"<td class='metric'>{escape(metric_percent('RMSE (%)'))}</td>"
                     f"<td class='metric'>{escape(r2)}</td>"
                     "</tr>"
                 )
@@ -1778,10 +1839,13 @@ elif page == "Evaluasi Model":
                 '<col style="width:12%"><col style="width:15%">'
                 '<col style="width:16%"><col style="width:13%"></colgroup>'
                 '<thead><tr><th>Kelompok</th><th>Jenis Komoditas</th>'
-                '<th>Model</th><th>MAE</th><th>RMSE</th><th>R²</th></tr></thead>'
+                '<th>Model</th><th>MAE (%)</th><th>RMSE (%)</th><th>R²</th></tr></thead>'
                 '<tbody>' + ''.join(table_rows) + '</tbody></table></div>'
             )
             st.markdown(html_table, unsafe_allow_html=True)
+            st.caption("MAE (%) = rata-rata galat absolut relatif terhadap harga aktual; "
+                       "RMSE (%) = akar rata-rata kuadrat galat relatif. "
+                       "Dihitung dari data uji, bukan konversi langsung nilai Rupiah.")
 
     with chart_col:
         with st.container(border=True):
@@ -1881,8 +1945,8 @@ elif page == "Evaluasi Model":
                         untuk atribut yang memilih model tersebut.
                     </div>
                 </div>
-                <div class="mini-metric"><div class="mini-label">MAE</div><div class="mini-value">{fmt_rp(best_model_row['MAE'])}</div></div>
-                <div class="mini-metric"><div class="mini-label">RMSE</div><div class="mini-value">{fmt_rp(best_model_row['RMSE'])}</div></div>
+                <div class="mini-metric"><div class="mini-label">MAE relatif (%)</div><div class="mini-value">{fmt_pct_metric(best_model_row['MAE'])}</div></div>
+                <div class="mini-metric"><div class="mini-label">RMSE relatif (%)</div><div class="mini-value">{fmt_pct_metric(best_model_row['RMSE'])}</div></div>
                 <div class="mini-metric"><div class="mini-label">R² Score</div><div class="mini-value">{fmt_r2(best_model_row['R2'])}</div></div>
             </div></div>
         """,
